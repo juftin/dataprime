@@ -1,0 +1,56 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list-all
+
+  install:
+    desc: Install development dependencies (None required for pure Web Extension)
+    cmds:
+      - echo "DataPrime Chrome Extension uses native Web APIs and requires zero dependencies!"
+
+  lint:
+    desc: Validate Manifest JSON and verify integrity of project files
+    cmds:
+      - echo "Validating manifest.json..."
+      - python3 -m json.tool manifest.json > /dev/null
+      - echo "Manifest is valid!"
+      - echo "Checking files integrity..."
+      - test -f content.js && echo "✓ content.js exists"
+      - test -f background.js && echo "✓ background.js exists"
+      - test -f popup/popup.html && echo "✓ popup/popup.html exists"
+      - test -f dashboard/results.html && echo "✓ dashboard/results.html exists"
+
+  fix:
+    desc: Perform auto-formatting/fix on codebase (No-op for pure JS)
+    cmds:
+      - echo "Formatting completed successfully."
+
+  check:
+    desc: General static check (linting + unit tests)
+    cmds:
+      - task: lint
+      - task: test
+
+  test:
+    desc: Run parser and transaction deduplication unit tests
+    cmds:
+      - echo "Running unit tests..."
+      - node --test tests/parser.test.js
+
+  zip:
+    desc: Pack the extension into a distributable zip archive
+    cmds:
+      - echo "Building extension package..."
+      - rm -f dataprime-extension.zip
+      - zip -r dataprime-extension.zip manifest.json content.js background.js icons/ popup/ dashboard/ -x "*.DS_Store" "*__pycache__*"
+      - echo "Extension packaged successfully as dataprime-extension.zip!"
+
+  build:
+    desc: Build task (wraps zip packaging)
+    cmds:
+      - task: zip

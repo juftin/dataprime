@@ -1,0 +1,24 @@
+# Temporary and Test Run Files
+tmp/
+chrome-profile/
+*.log
+
+# OS Metadata Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs and Editors Configuration
+.idea/
+.vscode/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace

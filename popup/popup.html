@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataPrime - Amazon Spending Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+  <script src="popup.js" defer></script>
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-orb">
+          <span>DP</span>
+        </div>
+        <div class="brand-text">
+          <h1>DataPrime</h1>
+          <p>Amazon Purchase Insights</p>
+        </div>
+      </div>
+      <div class="status-badge" id="statusBadge">Idle</div>
+    </header>
+
+    <!-- Main Content Panels -->
+    <main class="panels-container">
+      
+      <!-- Panel 1: Config Panel -->
+      <section id="panelConfig" class="panel active">
+        <div class="section-title">Configure Analysis</div>
+        
+        <!-- Quick Presets -->
+        <div class="form-group">
+          <label>Timeframe Preset</label>
+          <div class="presets-grid">
+            <button class="preset-btn" data-range="7">7 Days</button>
+            <button class="preset-btn active" data-range="30">30 Days</button>
+            <button class="preset-btn" data-range="90">90 Days</button>
+            <button class="preset-btn" data-range="365">1 Year</button>
+            <button class="preset-btn" data-range="custom">Custom</button>
+          </div>
+        </div>
+
+        <!-- Custom Dates (Hidden by default, shown on 'custom' preset) -->
+        <div class="custom-dates-row" id="customDatesRow">
+          <div class="form-group half">
+            <label for="startDate">Start Date</label>
+            <input type="date" id="startDate">
+          </div>
+          <div class="form-group half">
+            <label for="endDate">End Date</label>
+            <input type="date" id="endDate">
+          </div>
+        </div>
+
+        <!-- Toggle Itemized Details -->
+        <div class="form-group toggle-group">
+          <div class="toggle-text">
+            <span class="toggle-title">Fetch Itemized Details</span>
+            <span class="toggle-desc">Retrieve item descriptions, prices, and images from order pages.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="fetchItemized" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Primary Action Button -->
+        <button id="btnStartScrape" class="btn btn-primary btn-glow">
+          <span>Scrape & Analyze Spending</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+
+        <!-- Help Section -->
+        <div class="info-footer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <span>Run this on the Amazon Transactions page or let the extension navigate there automatically.</span>
+        </div>
+        
+        <div class="demo-divider">OR</div>
+        
+        <!-- Mock Data Quick Access -->
+        <button id="btnLoadDemo" class="btn btn-secondary">
+          <span>Test-Drive with Demo Data</span>
+        </button>
+        
+        <div style="margin-top: 12px; display: flex; justify-content: center;">
+          <button id="btnClearSaved" style="font-size: 10px; color: var(--danger); opacity: 0.7; cursor: pointer; background: none; border: none; font-weight: 500; transition: opacity 0.2s;">
+            Clear Stored Transactions
+          </button>
+        </div>
+      </section>
+
+      <!-- Panel 2: Scraping Progress Panel -->
+      <section id="panelProgress" class="panel">
+        <div class="progress-box">
+          <div class="progress-ring-container">
+            <svg class="progress-ring" width="100" height="100">
+              <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.05)" stroke-width="6" fill="transparent" r="44" cx="50" cy="50"/>
+              <circle class="progress-ring__circle" id="progressCircle" stroke="url(#indigoGrad)" stroke-width="6" fill="transparent" r="44" cx="50" cy="50"/>
+              <defs>
+                <linearGradient id="indigoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#6366f1" />
+                  <stop offset="100%" stop-color="#a855f7" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="progress-percentage" id="progressPercentage">0%</div>
+          </div>
+          
+          <div class="status-label" id="statusMessage">Preparing Scraper...</div>
+          <div class="progress-stats">
+            <div class="stat-bubble">
+              <span class="val" id="progressCount">0</span>
+              <span class="lbl">Parsed</span>
+            </div>
+            <div class="stat-bubble">
+              <span class="val" id="progressPageCount">0</span>
+              <span class="lbl">Pages</span>
+            </div>
+          </div>
+        </div>
+
+        <button id="btnCancelScrape" class="btn btn-danger">
+          <span>Cancel Scraping</span>
+        </button>
+      </section>
+
+      <!-- Panel 3: Complete Panel -->
+      <section id="panelComplete" class="panel">
+        <div class="success-header">
+          <div class="success-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <h3>Analysis Complete!</h3>
+          <p id="completeDesc">Scraped and itemized your transaction history.</p>
+        </div>
+
+        <!-- Quick Summary Cards -->
+        <div class="mini-stats-grid">
+          <div class="mini-stat-card">
+            <span class="lbl">Total Spend</span>
+            <span class="val text-gradient" id="sumTotalSpend">$0.00</span>
+          </div>
+          <div class="mini-stat-card">
+            <span class="lbl">Transactions</span>
+            <span class="val" id="sumTxCount">0</span>
+          </div>
+        </div>
+
+        <button id="btnOpenDashboard" class="btn btn-primary btn-glow">
+          <span>Open Interactive Dashboard</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line></svg>
+        </button>
+        
+        <div style="margin-top: 12px; display: flex; justify-content: center;">
+          <button id="btnGoBack" style="font-size: 10px; color: var(--text-muted); opacity: 0.7; cursor: pointer; background: none; border: none; font-weight: 500; transition: opacity 0.2s;">
+            ← Run Another Analysis
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>DataPrime v1.0.0</span>
+      <span class="dot">•</span>
+      <a href="#" id="linkDashboard">View Dashboard</a>
+    </footer>
+  </div>
+</body>
+</html>
