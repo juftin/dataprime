@@ -38,8 +38,8 @@ repos:
         pass_filenames: false
         always_run: true
 
-  - repo: https://github.com/conventional-changelog/commitlint
-    rev: v19.3.0
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.16.0
     hooks:
       - id: commitlint
         additional_dependencies:
