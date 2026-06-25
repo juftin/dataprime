@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate manifest.json Schema
-        uses: python-jsonschema/check-jsonschema@v2.28.1
+        uses: python-jsonschema/check-jsonschema@0.28.1
         with:
           schemafile: https://json.schemastore.org/chrome-manifest.json
           files: manifest.json
