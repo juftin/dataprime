@@ -25,7 +25,7 @@ jobs:
           python-version: "3.11"
 
       - name: Pre-Commit Run
-        uses: pre-commit/action@v3.0.1
+        uses: j178/prek-action@v1
         env:
           SKIP: test # Tests are run separately in the matrix job
 
@@ -36,11 +36,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Validate manifest.json Schema
-        uses: python-jsonschema/check-jsonschema@0.28.1
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          schemafile: https://json.schemastore.org/chrome-manifest.json
-          files: manifest.json
+          python-version: "3.11"
+
+      - name: Install check-jsonschema
+        run: pip install check-jsonschema==0.28.1
+
+      - name: Validate manifest.json Schema
+        run: check-jsonschema --schemafile https://json.schemastore.org/chrome-manifest.json manifest.json
 
   test:
     name: Unit Tests (Node ${{ matrix.node-version }})
