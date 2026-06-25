@@ -1,6 +1,6 @@
 # https://taskfile.dev
 
-version: '3'
+version: "3"
 
 tasks:
   default:
@@ -14,21 +14,28 @@ tasks:
       - echo "DataPrime Chrome Extension uses native Web APIs and requires zero dependencies!"
 
   lint:
-    desc: Validate Manifest JSON and verify integrity of project files
+    desc: Validate manifest syntax, code style (Prettier), and code quality (ESLint)
     cmds:
-      - echo "Validating manifest.json..."
+      - echo "Validating manifest.json syntax..."
       - python3 -m json.tool manifest.json > /dev/null
-      - echo "Manifest is valid!"
+      - echo "Manifest JSON is valid!"
       - echo "Checking files integrity..."
       - test -f content.js && echo "✓ content.js exists"
       - test -f background.js && echo "✓ background.js exists"
       - test -f popup/popup.html && echo "✓ popup/popup.html exists"
       - test -f dashboard/results.html && echo "✓ dashboard/results.html exists"
+      - echo "Running Prettier formatting check..."
+      - npx prettier --check .
+      - echo "Running ESLint check..."
+      - npx eslint .
 
   fix:
-    desc: Perform auto-formatting/fix on codebase (No-op for pure JS)
+    desc: Auto-format styles and resolve minor linting issues
     cmds:
-      - echo "Formatting completed successfully."
+      - echo "Running Prettier formatting auto-write..."
+      - npx prettier --write .
+      - echo "Running ESLint auto-fix..."
+      - npx eslint --fix .
 
   check:
     desc: General static check (linting + unit tests)
@@ -37,10 +44,10 @@ tasks:
       - task: test
 
   test:
-    desc: Run parser and transaction deduplication unit tests
+    desc: Run parser and transaction deduplication unit tests with experimental coverage
     cmds:
-      - echo "Running unit tests..."
-      - node --test tests/parser.test.js
+      - echo "Running unit tests with coverage..."
+      - node --test --experimental-test-coverage tests/parser.test.js
 
   zip:
     desc: Pack the extension into a distributable zip archive

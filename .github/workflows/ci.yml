@@ -2,13 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  check:
-    name: Code Quality & Tests
+  pre-commit:
+    name: Pre-Commit Checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -19,11 +19,50 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Pre-Commit Run
+        uses: pre-commit/action@v3.0.1
+        env:
+          SKIP: test # Tests are run separately in the matrix job
+
+  manifest-validation:
+    name: Manifest Schema Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate manifest.json Schema
+        uses: python-jsonschema/check-jsonschema@v2.28.1
+        with:
+          schemafile: https://json.schemastore.org/chrome-manifest.json
+          files: manifest.json
+
+  test:
+    name: Unit Tests (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Task Check
-        run: task check
+      - name: Run tests with coverage
+        run: task test

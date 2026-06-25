@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const chkShowOrders = document.getElementById("chkShowOrders");
   const chkShowRefunds = document.getElementById("chkShowRefunds");
   const chkShowItemizedOnly = document.getElementById("chkShowItemizedOnly");
-  
+
   const btnExportCSV = document.getElementById("btnExportCSV");
   const btnExportJSON = document.getElementById("btnExportJSON");
   const btnResetFilters = document.getElementById("btnResetFilters");
@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const syncTimeText = document.getElementById("syncTime");
   const btnRefreshData = document.getElementById("btnRefreshData");
   const syncIcon = document.getElementById("syncIcon");
-  
+
   const kpiTotalSpent = document.getElementById("kpiTotalSpent");
   const kpiSpentSub = document.getElementById("kpiSpentSub");
   const kpiTotalItems = document.getElementById("kpiTotalItems");
@@ -43,10 +43,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnCumulativeSpend = document.getElementById("btnCumulativeSpend");
   const spendingChart = document.getElementById("spendingChart");
   const chartTooltip = document.getElementById("chartTooltip");
-  
+
   const resultsCount = document.getElementById("resultsCount");
   const sortBySelect = document.getElementById("sortBySelect");
-  const transactionsTableBody = document.getElementById("transactionsTableBody");
+  const transactionsTableBody = document.getElementById(
+    "transactionsTableBody",
+  );
 
   // 1. Initialize Dashboard
   loadData();
@@ -63,9 +65,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 2. Add Filter Event Listeners
   [
-    filterStartDate, filterEndDate, filterMinPrice, filterMaxPrice,
-    chkShowOrders, chkShowRefunds, chkShowItemizedOnly
-  ].forEach(el => el.addEventListener("change", updateView));
+    filterStartDate,
+    filterEndDate,
+    filterMinPrice,
+    filterMaxPrice,
+    chkShowOrders,
+    chkShowRefunds,
+    chkShowItemizedOnly,
+  ].forEach((el) => el.addEventListener("change", updateView));
 
   searchInput.addEventListener("input", debounce(updateView, 250));
   sortBySelect.addEventListener("change", updateView);
@@ -110,12 +117,14 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   btnClearData.addEventListener("click", () => {
-    if (confirm("Wipe all transaction history? This actions cannot be undone.")) {
+    if (
+      confirm("Wipe all transaction history? This actions cannot be undone.")
+    ) {
       // First cancel any active scraping running in the background cleanly!
       chrome.runtime.sendMessage({ action: "STOP_SCRAPE" }, () => {
         // Suppress any runtime errors if background was inactive
         const err = chrome.runtime.lastError;
-        
+
         chrome.storage.local.clear(() => {
           allTransactions = [];
           updateView();
@@ -144,9 +153,12 @@ document.addEventListener("DOMContentLoaded", () => {
    * Reads transactions from local storage and hydrates state
    */
   async function loadData() {
-    const result = await chrome.storage.local.get(["transactions", "lastScraped"]);
+    const result = await chrome.storage.local.get([
+      "transactions",
+      "lastScraped",
+    ]);
     allTransactions = result.transactions || [];
-    
+
     if (result.lastScraped) {
       const syncDate = new Date(result.lastScraped);
       syncTimeText.innerText = `Database: Scraped on ${syncDate.toLocaleDateString()} at ${syncDate.toLocaleTimeString()}`;
@@ -172,21 +184,27 @@ document.addEventListener("DOMContentLoaded", () => {
    */
   function applyFilters() {
     const searchVal = searchInput.value.toLowerCase().trim();
-    const startVal = filterStartDate.value ? new Date(filterStartDate.value) : null;
+    const startVal = filterStartDate.value
+      ? new Date(filterStartDate.value)
+      : null;
     const endVal = filterEndDate.value ? new Date(filterEndDate.value) : null;
-    const minVal = filterMinPrice.value ? parseFloat(filterMinPrice.value) : null;
-    const maxVal = filterMaxPrice.value ? parseFloat(filterMaxPrice.value) : null;
-    
+    const minVal = filterMinPrice.value
+      ? parseFloat(filterMinPrice.value)
+      : null;
+    const maxVal = filterMaxPrice.value
+      ? parseFloat(filterMaxPrice.value)
+      : null;
+
     const showOrders = chkShowOrders.checked;
     const showRefunds = chkShowRefunds.checked;
     const showItemizedOnly = chkShowItemizedOnly.checked;
 
-    filteredTransactions = allTransactions.filter(tx => {
+    filteredTransactions = allTransactions.filter((tx) => {
       // 1. Transaction Category Toggles
       const isRefund = tx.amount < 0;
       if (isRefund && !showRefunds) return false;
       if (!isRefund && !showOrders) return false;
-      
+
       // 2. Only Itemized toggle
       const hasItems = tx.items && tx.items.length > 0;
       if (showItemizedOnly && !hasItems) return false;
@@ -195,17 +213,21 @@ document.addEventListener("DOMContentLoaded", () => {
       if (searchVal) {
         const matchesDesc = tx.description.toLowerCase().includes(searchVal);
         const matchesId = tx.id.toLowerCase().includes(searchVal);
-        const matchesPm = tx.paymentMethod && tx.paymentMethod.toLowerCase().includes(searchVal);
-        
+        const matchesPm =
+          tx.paymentMethod &&
+          tx.paymentMethod.toLowerCase().includes(searchVal);
+
         let matchesItems = false;
         if (tx.items) {
-          matchesItems = tx.items.some(item => 
-            item.title.toLowerCase().includes(searchVal) || 
-            (item.seller && item.seller.toLowerCase().includes(searchVal))
+          matchesItems = tx.items.some(
+            (item) =>
+              item.title.toLowerCase().includes(searchVal) ||
+              (item.seller && item.seller.toLowerCase().includes(searchVal)),
           );
         }
-        
-        if (!matchesDesc && !matchesId && !matchesPm && !matchesItems) return false;
+
+        if (!matchesDesc && !matchesId && !matchesPm && !matchesItems)
+          return false;
       }
 
       // 4. Date filtering
@@ -264,10 +286,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let refundsSum = 0;
     let totalItemsCount = 0;
     let ordersWithItemsCount = 0;
-    
+
     const purchaseAmounts = [];
 
-    filteredTransactions.forEach(tx => {
+    filteredTransactions.forEach((tx) => {
       const isRefund = tx.amount < 0;
       if (isRefund) {
         refundsSum += Math.abs(tx.amount);
@@ -279,8 +301,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // Count itemized quantities
       if (tx.items && tx.items.length > 0) {
         ordersWithItemsCount++;
-        tx.items.forEach(item => {
-          totalItemsCount += (item.quantity || 1);
+        tx.items.forEach((item) => {
+          totalItemsCount += item.quantity || 1;
         });
       }
     });
@@ -291,37 +313,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 2. Total Items Metrics
     kpiTotalItems.innerText = totalItemsCount;
-    const avgItems = ordersWithItemsCount > 0 ? (totalItemsCount / ordersWithItemsCount).toFixed(1) : "0.0";
+    const avgItems =
+      ordersWithItemsCount > 0
+        ? (totalItemsCount / ordersWithItemsCount).toFixed(1)
+        : "0.0";
     kpiItemsSub.innerText = `Across ${ordersWithItemsCount} itemized order listings (Avg ${avgItems}/order)`;
 
     // 3. Average & Median Order Sizes
     const orderCount = purchaseAmounts.length;
-    const avgOrderValue = orderCount > 0 ? (purchasesSum / orderCount) : 0;
+    const avgOrderValue = orderCount > 0 ? purchasesSum / orderCount : 0;
     kpiAvgOrder.innerText = formatCurrency(avgOrderValue);
-    
+
     // Compute median order size
     let median = 0;
     if (orderCount > 0) {
       purchaseAmounts.sort((a, b) => a - b);
       const mid = Math.floor(orderCount / 2);
-      median = orderCount % 2 !== 0 ? purchaseAmounts[mid] : (purchaseAmounts[mid - 1] + purchaseAmounts[mid]) / 2;
+      median =
+        orderCount % 2 !== 0
+          ? purchaseAmounts[mid]
+          : (purchaseAmounts[mid - 1] + purchaseAmounts[mid]) / 2;
     }
     kpiAvgSub.innerText = `Median order size: ${formatCurrency(median)} (${orderCount} total orders)`;
 
     // 4. Top Spending Month
     const monthlyGroups = {};
-    filteredTransactions.forEach(tx => {
+    filteredTransactions.forEach((tx) => {
       const isRefund = tx.amount < 0;
       if (isRefund) return; // skip refunds in monthly peak calculation
 
       const date = new Date(tx.date);
-      const monthKey = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+      const monthKey = date.toLocaleString("default", {
+        month: "short",
+        year: "numeric",
+      });
       monthlyGroups[monthKey] = (monthlyGroups[monthKey] || 0) + tx.amount;
     });
 
     let topMonthName = "N/A";
     let topMonthMax = 0;
-    
+
     Object.entries(monthlyGroups).forEach(([month, sum]) => {
       if (sum > topMonthMax) {
         topMonthMax = sum;
@@ -330,7 +361,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     kpiTopMonth.innerText = topMonthName;
-    kpiTopMonthSub.innerText = topMonthMax > 0 ? `Peak month volume: ${formatCurrency(topMonthMax)}` : "No purchases recorded";
+    kpiTopMonthSub.innerText =
+      topMonthMax > 0
+        ? `Peak month volume: ${formatCurrency(topMonthMax)}`
+        : "No purchases recorded";
   }
 
   /**
@@ -338,10 +372,10 @@ document.addEventListener("DOMContentLoaded", () => {
    */
   function renderChart() {
     spendingChart.innerHTML = ""; // Clear existing
-    
+
     const chartW = spendingChart.clientWidth || 800;
     const chartH = spendingChart.clientHeight || 240;
-    
+
     spendingChart.setAttribute("viewBox", `0 0 ${chartW} ${chartH}`);
     spendingChart.removeAttribute("preserveAspectRatio");
 
@@ -376,28 +410,34 @@ document.addEventListener("DOMContentLoaded", () => {
       // MODE 1: Monthly Grouped Spent (Bar Chart representation)
       // Group by month
       const monthlyData = {};
-      
+
       // Get all unique months in range (sort ascending)
-      const dates = filteredTransactions.map(t => new Date(t.date));
+      const dates = filteredTransactions.map((t) => new Date(t.date));
       if (dates.length === 0) return;
       const minDate = new Date(Math.min(...dates));
       const maxDate = new Date(Math.max(...dates));
-      
+
       let curr = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
       const end = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
-      
+
       // Seed all months in range with 0
       while (curr <= end) {
-        const key = curr.toLocaleString('default', { month: 'short', year: '2-digit' });
+        const key = curr.toLocaleString("default", {
+          month: "short",
+          year: "2-digit",
+        });
         monthlyData[key] = { label: key, net: 0, purchases: 0, refunds: 0 };
         curr.setMonth(curr.getMonth() + 1);
       }
 
       // Populate monthly spent
-      filteredTransactions.forEach(tx => {
+      filteredTransactions.forEach((tx) => {
         const date = new Date(tx.date);
-        const key = date.toLocaleString('default', { month: 'short', year: '2-digit' });
-        
+        const key = date.toLocaleString("default", {
+          month: "short",
+          year: "2-digit",
+        });
+
         if (monthlyData[key]) {
           if (tx.amount < 0) {
             monthlyData[key].refunds += Math.abs(tx.amount);
@@ -410,12 +450,15 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const dataArray = Object.values(monthlyData);
-      
+
       // If we only have 1 month, let's keep it clean
       if (dataArray.length === 0) return;
 
       // Find max spending for scale
-      const maxSpent = Math.max(...dataArray.map(d => Math.max(d.purchases, Math.abs(d.net))), 50);
+      const maxSpent = Math.max(
+        ...dataArray.map((d) => Math.max(d.purchases, Math.abs(d.net))),
+        50,
+      );
 
       // Draw Grid & Y-Axis
       drawGridLines(spendingChart, padding, plotW, plotH, maxSpent);
@@ -423,18 +466,21 @@ document.addEventListener("DOMContentLoaded", () => {
       // Draw Bars
       const barCount = dataArray.length;
       const barW = Math.min(48, (plotW / barCount) * 0.6);
-      const spacing = (plotW / barCount);
+      const spacing = plotW / barCount;
 
       dataArray.forEach((d, idx) => {
-        const x = padding.left + (idx * spacing) + (spacing - barW) / 2;
-        
+        const x = padding.left + idx * spacing + (spacing - barW) / 2;
+
         // Use purchases for display bar height, net for hover details
         const barVal = Math.max(0, d.purchases);
         const barHeight = (barVal / maxSpent) * plotH;
         const y = padding.top + plotH - barHeight;
 
         // Render rounded bar (using SVG path or rect)
-        const bar = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const bar = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path",
+        );
         const rx = 4; // rounded corner radius
         const pathString = `
           M ${x},${y + barHeight}
@@ -447,46 +493,54 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         bar.setAttribute("d", pathString);
         bar.setAttribute("class", "chart-bar");
-        
+
         // Show tooltip on hover
         bar.addEventListener("mousemove", (e) => {
-          showTooltip(e, `
+          showTooltip(
+            e,
+            `
             <div class="date">${d.label} Spending Details</div>
             <div class="val">Purchased: ${formatCurrency(d.purchases)}</div>
             <div class="val" style="color: var(--success-emerald)">Refunded: ${formatCurrency(d.refunds)}</div>
             <div class="val" style="border-top:1px solid rgba(255,255,255,0.08);margin-top:4px;padding-top:4px;">Net Total: ${formatCurrency(d.net)}</div>
-          `);
+          `,
+          );
         });
-        
+
         bar.addEventListener("mouseleave", hideTooltip);
         spendingChart.appendChild(bar);
 
         // Draw X Axis labels
-        drawLabel(spendingChart, d.label, x + barW/2, padding.top + plotH + 16, "middle");
+        drawLabel(
+          spendingChart,
+          d.label,
+          x + barW / 2,
+          padding.top + plotH + 16,
+          "middle",
+        );
       });
-
     } else {
       // MODE 2: Cumulative Sum (Line Chart representation)
       // Sort oldest first for running total calculation
       const cumulativeData = [...filteredTransactions]
-        .filter(t => t.amount > 0) // chart cumulative purchases
+        .filter((t) => t.amount > 0) // chart cumulative purchases
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
       if (cumulativeData.length === 0) return;
 
       let runningTotal = 0;
-      const points = cumulativeData.map(tx => {
+      const points = cumulativeData.map((tx) => {
         runningTotal += tx.amount;
         return {
           date: tx.date,
           orderId: tx.id,
           amount: tx.amount,
-          cumulative: runningTotal
+          cumulative: runningTotal,
         };
       });
 
       const maxTotal = runningTotal || 100;
-      
+
       // Draw Grid & Y-Axis
       drawGridLines(spendingChart, padding, plotW, plotH, maxTotal);
 
@@ -512,13 +566,19 @@ document.addEventListener("DOMContentLoaded", () => {
         areaD += ` L ${coords[coords.length - 1].x},${padding.top + plotH} Z`;
 
         // Render Area Fill
-        const areaPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const areaPath = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path",
+        );
         areaPath.setAttribute("d", areaD);
         areaPath.setAttribute("class", "chart-area");
         spendingChart.appendChild(areaPath);
 
         // Render Line Stroke
-        const linePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const linePath = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path",
+        );
         linePath.setAttribute("d", lineD);
         linePath.setAttribute("class", "chart-line");
         spendingChart.appendChild(linePath);
@@ -526,23 +586,29 @@ document.addEventListener("DOMContentLoaded", () => {
         // Render interactive overlay circles (dots) at vertices
         // If there are too many items, sample them to avoid rendering 500 dots
         const dotModulo = Math.max(1, Math.floor(coords.length / 50));
-        
+
         coords.forEach((c, idx) => {
           if (idx % dotModulo !== 0 && idx !== coords.length - 1) return;
 
-          const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          const dot = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle",
+          );
           dot.setAttribute("cx", c.x);
           dot.setAttribute("cy", c.y);
           dot.setAttribute("r", 4);
           dot.setAttribute("class", "chart-point");
 
           dot.addEventListener("mousemove", (e) => {
-            showTooltip(e, `
+            showTooltip(
+              e,
+              `
               <div class="date">${new Date(c.date).toLocaleDateString()}</div>
               <div class="val">Transaction: ${formatCurrency(c.amount)}</div>
               <div class="val" style="border-top:1px solid rgba(255,255,255,0.08);margin-top:4px;padding-top:4px;">Cumulative Spend: ${formatCurrency(c.cumulative)}</div>
               <div class="date" style="font-family:monospace;margin-top:2px;">Order ${c.orderId}</div>
-            `);
+            `,
+            );
           });
 
           dot.addEventListener("mouseleave", hideTooltip);
@@ -550,11 +616,32 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // Draw start and end date labels on X axis
-        const startDateText = new Date(coords[0].date).toLocaleDateString('default', { month: 'short', day: 'numeric', year: '2-digit' });
-        const endDateText = new Date(coords[coords.length - 1].date).toLocaleDateString('default', { month: 'short', day: 'numeric', year: '2-digit' });
-        
-        drawLabel(spendingChart, startDateText, padding.left, padding.top + plotH + 16, "start");
-        drawLabel(spendingChart, endDateText, padding.left + plotW, padding.top + plotH + 16, "end");
+        const startDateText = new Date(coords[0].date).toLocaleDateString(
+          "default",
+          { month: "short", day: "numeric", year: "2-digit" },
+        );
+        const endDateText = new Date(
+          coords[coords.length - 1].date,
+        ).toLocaleDateString("default", {
+          month: "short",
+          day: "numeric",
+          year: "2-digit",
+        });
+
+        drawLabel(
+          spendingChart,
+          startDateText,
+          padding.left,
+          padding.top + plotH + 16,
+          "start",
+        );
+        drawLabel(
+          spendingChart,
+          endDateText,
+          padding.left + plotW,
+          padding.top + plotH + 16,
+          "end",
+        );
       }
     }
   }
@@ -566,7 +653,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const y = padding.top + h - (i / ticks) * h;
 
       // Dotted horizontal grid line
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      const line = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line",
+      );
       line.setAttribute("x1", padding.left);
       line.setAttribute("y1", y);
       line.setAttribute("x2", padding.left + w);
@@ -575,7 +665,13 @@ document.addEventListener("DOMContentLoaded", () => {
       svg.appendChild(line);
 
       // Y-axis label text
-      drawLabel(svg, formatCurrencyCompact(yVal), padding.left - 10, y + 3, "end");
+      drawLabel(
+        svg,
+        formatCurrencyCompact(yVal),
+        padding.left - 10,
+        y + 3,
+        "end",
+      );
     }
 
     // Baseline axis line
@@ -593,7 +689,10 @@ document.addEventListener("DOMContentLoaded", () => {
     el.setAttribute("x", x);
     el.setAttribute("y", y);
     el.setAttribute("class", "chart-axis-text");
-    el.setAttribute("text-anchor", align === "start" ? "start" : align === "end" ? "end" : "middle");
+    el.setAttribute(
+      "text-anchor",
+      align === "start" ? "start" : align === "end" ? "end" : "middle",
+    );
     el.textContent = text;
     svg.appendChild(el);
   }
@@ -601,12 +700,13 @@ document.addEventListener("DOMContentLoaded", () => {
   function showTooltip(e, content) {
     chartTooltip.innerHTML = content;
     chartTooltip.style.display = "block";
-    
+
     // Center tooltip above active mouse position
     const box = spendingChart.getBoundingClientRect();
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    const scrollLeft =
+      window.pageXOffset || document.documentElement.scrollLeft;
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
+
     const x = e.clientX - box.left - chartTooltip.offsetWidth / 2;
     const y = e.clientY - box.top - chartTooltip.offsetHeight - 12;
 
@@ -646,7 +746,7 @@ document.addEventListener("DOMContentLoaded", () => {
     filteredTransactions.forEach((tx) => {
       const isRefund = tx.amount < 0;
       const hasItems = tx.items && tx.items.length > 0;
-      
+
       let itemsCount = 0;
       if (hasItems) {
         itemsCount = tx.items.reduce((acc, i) => acc + (i.quantity || 1), 0);
@@ -656,18 +756,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const row = document.createElement("tr");
       row.className = "tx-row";
       row.setAttribute("data-id", tx.id);
-      
+
       row.innerHTML = `
         <td class="date-col">${new Date(tx.date).toLocaleDateString()}</td>
         <td class="order-id-col">${tx.orderId || "N/A"}</td>
         <td class="desc-col" title="${escapeHtml(tx.description)}">${escapeHtml(tx.description)}</td>
         <td class="text-center">
-          <span class="items-badge ${hasItems ? 'itemized' : ''}">
-            ${hasItems ? `${itemsCount} item${itemsCount > 1 ? 's' : ''}` : 'N/A'}
+          <span class="items-badge ${hasItems ? "itemized" : ""}">
+            ${hasItems ? `${itemsCount} item${itemsCount > 1 ? "s" : ""}` : "N/A"}
           </span>
         </td>
         <td class="pm-col">${escapeHtml(tx.paymentMethod || "Account Bal")}</td>
-        <td class="text-right amount-col ${isRefund ? 'refund' : ''}">
+        <td class="text-right amount-col ${isRefund ? "refund" : ""}">
           ${isRefund ? `+${formatCurrency(Math.abs(tx.amount))}` : formatCurrency(tx.amount)}
         </td>
       `;
@@ -676,26 +776,27 @@ document.addEventListener("DOMContentLoaded", () => {
       const detailsRow = document.createElement("tr");
       detailsRow.className = "details-row";
       detailsRow.id = `details-${tx.id}`;
-      
+
       // Hydrate itemized templates inside drawer
       let itemsListHtml = "";
       let subtotalSum = 0;
 
       if (hasItems) {
-        itemsListHtml = tx.items.map(item => {
-          const itemSubtotal = (item.price || 0) * (item.quantity || 1);
-          subtotalSum += itemSubtotal;
-          
-          const thumbHtml = item.imageUrl 
-            ? `<div class="item-thumb"><img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" onerror="this.outerHTML='<div class=\\'no-img\\'>🛒</div>'"></div>`
-            : `<div class="item-thumb"><div class="no-img">🛒</div></div>`;
-            
-          return `
+        itemsListHtml = tx.items
+          .map((item) => {
+            const itemSubtotal = (item.price || 0) * (item.quantity || 1);
+            subtotalSum += itemSubtotal;
+
+            const thumbHtml = item.imageUrl
+              ? `<div class="item-thumb"><img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" onerror="this.outerHTML='<div class=\\'no-img\\'>🛒</div>'"></div>`
+              : `<div class="item-thumb"><div class="no-img">🛒</div></div>`;
+
+            return `
             <div class="item-card">
               ${thumbHtml}
               <div class="item-info">
                 <h5>${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" class="item-title-link">${escapeHtml(item.title)}</a>` : escapeHtml(item.title)}</h5>
-                <p>Sold by: <strong>${escapeHtml(item.seller || 'Amazon.com')}</strong></p>
+                <p>Sold by: <strong>${escapeHtml(item.seller || "Amazon.com")}</strong></p>
               </div>
               <div class="item-financials">
                 <span class="price">${formatCurrency(item.price)}</span>
@@ -704,7 +805,8 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
             </div>
           `;
-        }).join("");
+          })
+          .join("");
       } else {
         itemsListHtml = `
           <div class="empty-inner" style="padding: 20px 0;">
@@ -718,11 +820,12 @@ document.addEventListener("DOMContentLoaded", () => {
       let invoiceUrl = tx.detailsLink;
       if (!invoiceUrl && tx.orderId) {
         const descLower = (tx.description || "").toLowerCase();
-        const isGrocery = descLower.includes("fresh") || 
-                          descLower.includes("whole foods") || 
-                          descLower.includes("grocery") || 
-                          descLower.includes("groceries") || 
-                          descLower.includes("prime now");
+        const isGrocery =
+          descLower.includes("fresh") ||
+          descLower.includes("whole foods") ||
+          descLower.includes("grocery") ||
+          descLower.includes("groceries") ||
+          descLower.includes("prime now");
         if (isGrocery) {
           invoiceUrl = `https://www.amazon.com/uff/your-account/order-details/ref=ppx_hzod_rd_dt_b_fresh_uff_rd?_encoding=UTF8&orderID=${tx.orderId}&page=itemmod`;
         } else if (tx.orderId.toUpperCase().startsWith("D")) {
@@ -737,10 +840,14 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="items-container">
             <div class="details-subheader">
               <h4>Itemized Invoice Records</h4>
-              ${invoiceUrl ? `<a href="${escapeHtml(invoiceUrl)}" target="_blank">
+              ${
+                invoiceUrl
+                  ? `<a href="${escapeHtml(invoiceUrl)}" target="_blank">
                 <span>View Amazon Order Details</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-              </a>` : ""}
+              </a>`
+                  : ""
+              }
             </div>
             
             <div class="items-list">
@@ -753,14 +860,18 @@ document.addEventListener("DOMContentLoaded", () => {
                   <span>Subtotal</span>
                   <span>${formatCurrency(subtotalSum)}</span>
                 </div>
-                ${Math.abs(receiptDiff) > 0.02 ? `
+                ${
+                  Math.abs(receiptDiff) > 0.02
+                    ? `
                 <div class="receipt-row">
                   <span>Shipping & Tax</span>
                   <span>${formatCurrency(receiptDiff)}</span>
                 </div>
-                ` : ""}
+                `
+                    : ""
+                }
                 <div class="receipt-row total">
-                  <span>${isRefund ? 'Refund Issued' : 'Total Amount Paid'}</span>
+                  <span>${isRefund ? "Refund Issued" : "Total Amount Paid"}</span>
                   <span>${formatCurrency(Math.abs(tx.amount))}</span>
                 </div>
               </div>
@@ -772,12 +883,12 @@ document.addEventListener("DOMContentLoaded", () => {
       // Accordion click interactions
       row.addEventListener("click", () => {
         const isCurrentlyExpanded = row.classList.contains("expanded");
-        
+
         // Collapse all expanded rows in the table (keeps UI extremely tidy)
-        document.querySelectorAll(".tx-row.expanded").forEach(r => {
+        document.querySelectorAll(".tx-row.expanded").forEach((r) => {
           r.classList.remove("expanded");
         });
-        document.querySelectorAll(".details-row.show").forEach(dr => {
+        document.querySelectorAll(".details-row.show").forEach((dr) => {
           dr.classList.remove("show");
         });
 
@@ -794,26 +905,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * Generates and downloads a CSV export of the currently filtered transactions dataset.
-   * Compiles the data into a CSV string, constructs a Blob, triggers a browser download 
+   * Compiles the data into a CSV string, constructs a Blob, triggers a browser download
    * using a transient Object URL, and cleans up memory immediately.
    */
   function exportToCSV() {
     if (filteredTransactions.length === 0) return;
 
     // Build Headers
-    let csvContent = "Date,Order ID,Description,Card/Payment Method,Amount Paid,Item Title,Item Unit Price,Item Qty,Seller,Item Link\n";
+    let csvContent =
+      "Date,Order ID,Description,Card/Payment Method,Amount Paid,Item Title,Item Unit Price,Item Qty,Seller,Item Link\n";
 
-    filteredTransactions.forEach(tx => {
+    filteredTransactions.forEach((tx) => {
       const isRefund = tx.amount < 0;
       const baseAmt = isRefund ? -Math.abs(tx.amount) : tx.amount;
-      
+
       const escapedDesc = `"${tx.description.replace(/"/g, '""')}"`;
       const escapedPm = `"${(tx.paymentMethod || "Amazon Bal").replace(/"/g, '""')}"`;
-      
+
       if (tx.items && tx.items.length > 0) {
-        tx.items.forEach(item => {
+        tx.items.forEach((item) => {
           const escapedTitle = `"${item.title.replace(/"/g, '""')}"`;
-          const escapedSeller = `"${(item.seller || 'Amazon').replace(/"/g, '""')}"`;
+          const escapedSeller = `"${(item.seller || "Amazon").replace(/"/g, '""')}"`;
           const rowData = [
             tx.date,
             tx.orderId || "N/A",
@@ -824,7 +936,7 @@ document.addEventListener("DOMContentLoaded", () => {
             item.price,
             item.quantity,
             escapedSeller,
-            item.url || ""
+            item.url || "",
           ].join(",");
           csvContent += rowData + "\n";
         });
@@ -840,7 +952,7 @@ document.addEventListener("DOMContentLoaded", () => {
           baseAmt,
           1,
           "Amazon",
-          tx.detailsLink || ""
+          tx.detailsLink || "",
         ].join(",");
         csvContent += rowData + "\n";
       }
@@ -850,7 +962,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `DataPrime_Spending_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `DataPrime_Spending_Export_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -859,17 +974,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * Downloads a full formatted JSON dump of the currently filtered transaction dataset.
-   * Serializes the array, constructs a Blob, triggers a browser download using a 
+   * Serializes the array, constructs a Blob, triggers a browser download using a
    * transient Object URL, and cleans up memory immediately.
    */
   function exportToJSON() {
     if (filteredTransactions.length === 0) return;
 
-    const blob = new Blob([JSON.stringify(filteredTransactions, null, 2)], { type: "application/json;charset=utf-8;" });
+    const blob = new Blob([JSON.stringify(filteredTransactions, null, 2)], {
+      type: "application/json;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `DataPrime_Analytics_Export_${new Date().toISOString().split('T')[0]}.json`);
+    link.setAttribute(
+      "download",
+      `DataPrime_Analytics_Export_${new Date().toISOString().split("T")[0]}.json`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -879,32 +999,32 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- Helpers ---
 
   function formatCurrency(val) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
     }).format(val);
   }
 
   function formatCurrencyCompact(val) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      notation: 'compact',
-      compactDisplay: 'short'
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      notation: "compact",
+      compactDisplay: "short",
     }).format(val);
   }
 
   function escapeHtml(text) {
     if (!text) return "";
     const map = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
     };
-    return text.toString().replace(/[&<>"']/g, m => map[m]);
+    return text.toString().replace(/[&<>"']/g, (m) => map[m]);
   }
 
   function debounce(func, wait) {
@@ -920,6 +1040,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 });

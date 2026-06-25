@@ -1,251 +1,396 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DataPrime - Purchase Analytics Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="results.css">
-  <script src="results.js" defer></script>
-</head>
-<body>
-  <div class="dashboard-wrapper">
-    
-    <!-- Sidebar / Filters -->
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="logo-orb">
-          <span>DP</span>
-        </div>
-        <div class="brand-text">
-          <h1>DataPrime</h1>
-          <p>Purchase Intelligence</p>
-        </div>
-      </div>
-
-      <nav class="sidebar-nav">
-        <!-- Search -->
-        <div class="filter-section">
-          <label class="section-lbl">Global Search</label>
-          <div class="search-box">
-            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="searchInput" placeholder="Search orders, items, card...">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DataPrime - Purchase Analytics Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="results.css" />
+    <script src="results.js" defer></script>
+  </head>
+  <body>
+    <div class="dashboard-wrapper">
+      <!-- Sidebar / Filters -->
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="logo-orb">
+            <span>DP</span>
+          </div>
+          <div class="brand-text">
+            <h1>DataPrime</h1>
+            <p>Purchase Intelligence</p>
           </div>
         </div>
 
-        <!-- Date Filters -->
-        <div class="filter-section">
-          <label class="section-lbl">Date Window</label>
-          <div class="filter-inputs">
-            <div class="input-wrap">
-              <span class="input-tag">From</span>
-              <input type="date" id="filterStartDate">
-            </div>
-            <div class="input-wrap">
-              <span class="input-tag">To</span>
-              <input type="date" id="filterEndDate">
-            </div>
-          </div>
-        </div>
-
-        <!-- Value Filters -->
-        <div class="filter-section">
-          <label class="section-lbl">Transaction Size</label>
-          <div class="range-inputs">
-            <div class="input-wrap">
-              <span class="input-tag">Min $</span>
-              <input type="number" id="filterMinPrice" placeholder="0" min="0">
-            </div>
-            <div class="input-wrap">
-              <span class="input-tag">Max $</span>
-              <input type="number" id="filterMaxPrice" placeholder="Any" min="0">
+        <nav class="sidebar-nav">
+          <!-- Search -->
+          <div class="filter-section">
+            <label class="section-lbl">Global Search</label>
+            <div class="search-box">
+              <svg
+                class="search-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Search orders, items, card..."
+              />
             </div>
           </div>
-        </div>
 
-        <!-- Transaction Type Filters -->
-        <div class="filter-section">
-          <label class="section-lbl">Filter by Category</label>
-          <div class="checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" id="chkShowOrders" checked>
-              <span class="check-box"></span>
-              <span>Orders & Purchases</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" id="chkShowRefunds" checked>
-              <span class="check-box"></span>
-              <span>Refunds & Adjustments</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" id="chkShowItemizedOnly">
-              <span class="check-box"></span>
-              <span>Only Itemized Orders</span>
-            </label>
+          <!-- Date Filters -->
+          <div class="filter-section">
+            <label class="section-lbl">Date Window</label>
+            <div class="filter-inputs">
+              <div class="input-wrap">
+                <span class="input-tag">From</span>
+                <input type="date" id="filterStartDate" />
+              </div>
+              <div class="input-wrap">
+                <span class="input-tag">To</span>
+                <input type="date" id="filterEndDate" />
+              </div>
+            </div>
           </div>
-        </div>
-      </nav>
 
-      <!-- Export Controls -->
-      <div class="sidebar-footer">
-        <label class="section-lbl">Data Operations</label>
-        <div class="actions-grid">
-          <button id="btnExportCSV" class="btn btn-secondary action-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Export CSV</span>
+          <!-- Value Filters -->
+          <div class="filter-section">
+            <label class="section-lbl">Transaction Size</label>
+            <div class="range-inputs">
+              <div class="input-wrap">
+                <span class="input-tag">Min $</span>
+                <input
+                  type="number"
+                  id="filterMinPrice"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+              <div class="input-wrap">
+                <span class="input-tag">Max $</span>
+                <input
+                  type="number"
+                  id="filterMaxPrice"
+                  placeholder="Any"
+                  min="0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Transaction Type Filters -->
+          <div class="filter-section">
+            <label class="section-lbl">Filter by Category</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkShowOrders" checked />
+                <span class="check-box"></span>
+                <span>Orders & Purchases</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkShowRefunds" checked />
+                <span class="check-box"></span>
+                <span>Refunds & Adjustments</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkShowItemizedOnly" />
+                <span class="check-box"></span>
+                <span>Only Itemized Orders</span>
+              </label>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Export Controls -->
+        <div class="sidebar-footer">
+          <label class="section-lbl">Data Operations</label>
+          <div class="actions-grid">
+            <button id="btnExportCSV" class="btn btn-secondary action-btn">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Export CSV</span>
+            </button>
+            <button id="btnExportJSON" class="btn btn-secondary action-btn">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Export JSON</span>
+            </button>
+          </div>
+          <button id="btnResetFilters" class="btn btn-danger-outline">
+            <span>Reset All Filters</span>
           </button>
-          <button id="btnExportJSON" class="btn btn-secondary action-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Export JSON</span>
-          </button>
-        </div>
-        <button id="btnResetFilters" class="btn btn-danger-outline">
-          <span>Reset All Filters</span>
-        </button>
-        
-        <!-- Database Maintenance -->
-        <div class="db-actions">
-          <button id="btnSeedDemo" class="btn-text">Inject Demo Data</button>
-          <span class="divider">|</span>
-          <button id="btnClearData" class="btn-text text-danger">Wipe Database</button>
-        </div>
-      </div>
-    </aside>
 
-    <!-- Main Content Area -->
-    <main class="main-content">
-      
-      <!-- Top Action Bar -->
-      <header class="main-header">
-        <div class="header-title">
-          <h2>Purchase Dashboard</h2>
-          <p id="syncTime">Database: Syncing status...</p>
+          <!-- Database Maintenance -->
+          <div class="db-actions">
+            <button id="btnSeedDemo" class="btn-text">Inject Demo Data</button>
+            <span class="divider">|</span>
+            <button id="btnClearData" class="btn-text text-danger">
+              Wipe Database
+            </button>
+          </div>
         </div>
-        <div class="header-actions">
-          <button id="btnRefreshData" class="btn btn-secondary refresh-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="syncIcon"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
-            <span>Sync Data</span>
-          </button>
-        </div>
-      </header>
+      </aside>
 
-      <!-- Grid of KPI Cards -->
-      <section class="kpi-grid">
-        <div class="kpi-card glow-card">
-          <div class="kpi-icon-wrap bg-indigo-glow">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Top Action Bar -->
+        <header class="main-header">
+          <div class="header-title">
+            <h2>Purchase Dashboard</h2>
+            <p id="syncTime">Database: Syncing status...</p>
           </div>
-          <div class="kpi-metrics">
-            <span class="lbl">Total Spending</span>
-            <h3 class="val text-gradient" id="kpiTotalSpent">$0.00</h3>
-            <span class="sub" id="kpiSpentSub">Includes $0.00 in refunds</span>
+          <div class="header-actions">
+            <button id="btnRefreshData" class="btn btn-secondary refresh-btn">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                id="syncIcon"
+              >
+                <path
+                  d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"
+                ></path>
+              </svg>
+              <span>Sync Data</span>
+            </button>
           </div>
-        </div>
+        </header>
 
-        <div class="kpi-card">
-          <div class="kpi-icon-wrap bg-violet-glow">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        <!-- Grid of KPI Cards -->
+        <section class="kpi-grid">
+          <div class="kpi-card glow-card">
+            <div class="kpi-icon-wrap bg-indigo-glow">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6366f1"
+                stroke-width="2"
+              >
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                <line x1="12" y1="4" x2="12" y2="20"></line>
+              </svg>
+            </div>
+            <div class="kpi-metrics">
+              <span class="lbl">Total Spending</span>
+              <h3 class="val text-gradient" id="kpiTotalSpent">$0.00</h3>
+              <span class="sub" id="kpiSpentSub"
+                >Includes $0.00 in refunds</span
+              >
+            </div>
           </div>
-          <div class="kpi-metrics">
-            <span class="lbl">Items Purchased</span>
-            <h3 class="val" id="kpiTotalItems">0</h3>
-            <span class="sub" id="kpiItemsSub">Avg. 0.0 items per order</span>
-          </div>
-        </div>
 
-        <div class="kpi-card">
-          <div class="kpi-icon-wrap bg-emerald-glow">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap bg-violet-glow">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#8b5cf6"
+                stroke-width="2"
+              >
+                <path
+                  d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+                ></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+            </div>
+            <div class="kpi-metrics">
+              <span class="lbl">Items Purchased</span>
+              <h3 class="val" id="kpiTotalItems">0</h3>
+              <span class="sub" id="kpiItemsSub">Avg. 0.0 items per order</span>
+            </div>
           </div>
-          <div class="kpi-metrics">
-            <span class="lbl">Average Order Value</span>
-            <h3 class="val" id="kpiAvgOrder">$0.00</h3>
-            <span class="sub" id="kpiAvgSub">Median order size: $0.00</span>
-          </div>
-        </div>
 
-        <div class="kpi-card">
-          <div class="kpi-icon-wrap bg-amber-glow">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap bg-emerald-glow">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#10b981"
+                stroke-width="2"
+              >
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path
+                  d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                ></path>
+              </svg>
+            </div>
+            <div class="kpi-metrics">
+              <span class="lbl">Average Order Value</span>
+              <h3 class="val" id="kpiAvgOrder">$0.00</h3>
+              <span class="sub" id="kpiAvgSub">Median order size: $0.00</span>
+            </div>
           </div>
-          <div class="kpi-metrics">
-            <span class="lbl">Top Spending Month</span>
-            <h3 class="val" id="kpiTopMonth">N/A</h3>
-            <span class="sub" id="kpiTopMonthSub">Peak month: $0.00</span>
-          </div>
-        </div>
-      </section>
 
-      <!-- SVG Spending Chart section -->
-      <section class="chart-section glass-panel">
-        <div class="chart-header">
-          <div class="chart-title-group">
-            <h3>Spending Trends</h3>
-            <p>Aggregated visual overview of purchases over time</p>
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap bg-amber-glow">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#f59e0b"
+                stroke-width="2"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <div class="kpi-metrics">
+              <span class="lbl">Top Spending Month</span>
+              <h3 class="val" id="kpiTopMonth">N/A</h3>
+              <span class="sub" id="kpiTopMonthSub">Peak month: $0.00</span>
+            </div>
           </div>
-          <div class="chart-controls">
-            <button class="toggle-chart-btn active" id="btnMonthlyTrend">Monthly Overview</button>
-            <button class="toggle-chart-btn" id="btnCumulativeSpend">Cumulative Sum</button>
-          </div>
-        </div>
-        <div class="chart-container">
-          <svg id="spendingChart" width="100%" height="100%" viewBox="0 0 800 240">
-            <!-- Programmatic SVG renders here -->
-          </svg>
-          <!-- SVG Tooltip -->
-          <div id="chartTooltip" class="chart-tooltip"></div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Detailed Transactions Accordion Table -->
-      <section class="table-section glass-panel">
-        <div class="table-header">
-          <div class="table-title">
-            <h3>Transaction Registry</h3>
-            <span class="results-badge" id="resultsCount">Showing 0 matching records</span>
+        <!-- SVG Spending Chart section -->
+        <section class="chart-section glass-panel">
+          <div class="chart-header">
+            <div class="chart-title-group">
+              <h3>Spending Trends</h3>
+              <p>Aggregated visual overview of purchases over time</p>
+            </div>
+            <div class="chart-controls">
+              <button class="toggle-chart-btn active" id="btnMonthlyTrend">
+                Monthly Overview
+              </button>
+              <button class="toggle-chart-btn" id="btnCumulativeSpend">
+                Cumulative Sum
+              </button>
+            </div>
           </div>
-          <div class="table-sorting">
-            <label for="sortBySelect">Sort by</label>
-            <select id="sortBySelect">
-              <option value="date-desc">Date (Newest first)</option>
-              <option value="date-asc">Date (Oldest first)</option>
-              <option value="amount-desc">Amount (Highest first)</option>
-              <option value="amount-asc">Amount (Lowest first)</option>
-            </select>
+          <div class="chart-container">
+            <svg
+              id="spendingChart"
+              width="100%"
+              height="100%"
+              viewBox="0 0 800 240"
+            >
+              <!-- Programmatic SVG renders here -->
+            </svg>
+            <!-- SVG Tooltip -->
+            <div id="chartTooltip" class="chart-tooltip"></div>
           </div>
-        </div>
+        </section>
 
-        <div class="table-responsive">
-          <table class="dashboard-table">
-            <thead>
-              <tr>
-                <th width="12%">Date</th>
-                <th width="20%">Order ID</th>
-                <th width="35%">Description</th>
-                <th width="10%" class="text-center">Items</th>
-                <th width="13%">Card / Method</th>
-                <th width="10%" class="text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody id="transactionsTableBody">
-              <!-- Programmatic transactions go here -->
-              <tr class="empty-state">
-                <td colspan="6">
-                  <div class="empty-inner">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="13" y2="17"></line></svg>
-                    <h4>No transactions found</h4>
-                    <p>Whip up mock demo data in the sidebar or run a fresh scrape on your Amazon Payments page.</p>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+        <!-- Detailed Transactions Accordion Table -->
+        <section class="table-section glass-panel">
+          <div class="table-header">
+            <div class="table-title">
+              <h3>Transaction Registry</h3>
+              <span class="results-badge" id="resultsCount"
+                >Showing 0 matching records</span
+              >
+            </div>
+            <div class="table-sorting">
+              <label for="sortBySelect">Sort by</label>
+              <select id="sortBySelect">
+                <option value="date-desc">Date (Newest first)</option>
+                <option value="date-asc">Date (Oldest first)</option>
+                <option value="amount-desc">Amount (Highest first)</option>
+                <option value="amount-asc">Amount (Lowest first)</option>
+              </select>
+            </div>
+          </div>
 
-    </main>
-  </div>
-</body>
+          <div class="table-responsive">
+            <table class="dashboard-table">
+              <thead>
+                <tr>
+                  <th width="12%">Date</th>
+                  <th width="20%">Order ID</th>
+                  <th width="35%">Description</th>
+                  <th width="10%" class="text-center">Items</th>
+                  <th width="13%">Card / Method</th>
+                  <th width="10%" class="text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody id="transactionsTableBody">
+                <!-- Programmatic transactions go here -->
+                <tr class="empty-state">
+                  <td colspan="6">
+                    <div class="empty-inner">
+                      <svg
+                        width="48"
+                        height="48"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="var(--text-muted)"
+                        stroke-width="1.5"
+                      >
+                        <rect
+                          x="3"
+                          y="3"
+                          width="18"
+                          height="18"
+                          rx="2"
+                          ry="2"
+                        ></rect>
+                        <line x1="9" y1="9" x2="15" y2="9"></line>
+                        <line x1="9" y1="13" x2="15" y2="13"></line>
+                        <line x1="9" y1="17" x2="13" y2="17"></line>
+                      </svg>
+                      <h4>No transactions found</h4>
+                      <p>
+                        Whip up mock demo data in the sidebar or run a fresh
+                        scrape on your Amazon Payments page.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
 </html>

@@ -7,14 +7,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const panelConfig = document.getElementById("panelConfig");
   const panelProgress = document.getElementById("panelProgress");
   const panelComplete = document.getElementById("panelComplete");
-  
+
   const statusBadge = document.getElementById("statusBadge");
   const presetBtns = document.querySelectorAll(".preset-btn");
   const customDatesRow = document.getElementById("customDatesRow");
   const startDateInput = document.getElementById("startDate");
   const endDateInput = document.getElementById("endDate");
   const fetchItemizedCheck = document.getElementById("fetchItemized");
-  
+
   const btnStartScrape = document.getElementById("btnStartScrape");
   const btnCancelScrape = document.getElementById("btnCancelScrape");
   const btnLoadDemo = document.getElementById("btnLoadDemo");
@@ -22,13 +22,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnOpenDashboard = document.getElementById("btnOpenDashboard");
   const btnGoBack = document.getElementById("btnGoBack");
   const linkDashboard = document.getElementById("linkDashboard");
-  
+
   const progressCircle = document.getElementById("progressCircle");
   const progressPercentage = document.getElementById("progressPercentage");
   const statusMessage = document.getElementById("statusMessage");
   const progressCount = document.getElementById("progressCount");
   const progressPageCount = document.getElementById("progressPageCount");
-  
+
   const sumTotalSpend = document.getElementById("sumTotalSpend");
   const sumTxCount = document.getElementById("sumTxCount");
 
@@ -56,9 +56,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // 2. Preset Selection
-  presetBtns.forEach(btn => {
+  presetBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
-      presetBtns.forEach(b => b.classList.remove("active"));
+      presetBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       currentPreset = btn.dataset.range;
 
@@ -66,9 +66,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         customDatesRow.style.display = "flex";
         // Default to last 30 days in custom inputs
         const today = new Date();
-        const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-        startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
-        endDateInput.value = today.toISOString().split('T')[0];
+        const thirtyDaysAgo = new Date(
+          today.getTime() - 30 * 24 * 60 * 60 * 1000,
+        );
+        startDateInput.value = thirtyDaysAgo.toISOString().split("T")[0];
+        endDateInput.value = today.toISOString().split("T")[0];
       } else {
         customDatesRow.style.display = "none";
       }
@@ -83,8 +85,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const today = new Date();
     if (currentPreset !== "custom") {
       const days = parseInt(currentPreset);
-      startDate = new Date(today.getTime() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      endDate = today.toISOString().split('T')[0];
+      startDate = new Date(today.getTime() - days * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0];
+      endDate = today.toISOString().split("T")[0];
     } else {
       startDate = startDateInput.value;
       endDate = endDateInput.value;
@@ -96,18 +100,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     switchPanel(panelProgress);
     updateBadge("Analyzing...", "scraping");
 
-    chrome.runtime.sendMessage({
-      action: "LAUNCH_BACKGROUND_SCRAPE",
-      startDate,
-      endDate,
-      fetchItemized
-    }, (res) => {
-      if (chrome.runtime.lastError) {
-        alert("Failed to start background analysis: " + chrome.runtime.lastError.message);
-        switchPanel(panelConfig);
-        updateBadge("Idle", "");
-      }
-    });
+    chrome.runtime.sendMessage(
+      {
+        action: "LAUNCH_BACKGROUND_SCRAPE",
+        startDate,
+        endDate,
+        fetchItemized,
+      },
+      (res) => {
+        if (chrome.runtime.lastError) {
+          alert(
+            "Failed to start background analysis: " +
+              chrome.runtime.lastError.message,
+          );
+          switchPanel(panelConfig);
+          updateBadge("Idle", "");
+        }
+      },
+    );
   });
 
   // 4. Cancel Scraping Button
@@ -119,10 +129,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 5. Open Dashboard Button
   const openDashboardHandler = () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL("dashboard/results.html") });
+    chrome.tabs.create({
+      url: chrome.runtime.getURL("dashboard/results.html"),
+    });
   };
   btnOpenDashboard.addEventListener("click", openDashboardHandler);
-  
+
   if (btnGoBack) {
     btnGoBack.addEventListener("click", () => {
       chrome.runtime.sendMessage({ action: "RESET_SCRAPE_STATE" }, () => {
@@ -149,12 +161,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           // Update complete summary
           sumTotalSpend.innerText = "$2,450.75";
           sumTxCount.innerText = "27";
-          
+
           switchPanel(panelComplete);
           updateBadge("Demo Data", "completed");
           btnLoadDemo.disabled = false;
           btnLoadDemo.innerText = "Test-Drive with Demo Data";
-          
+
           // Open results tab automatically after seed
           openDashboardHandler();
         }, 1200);
@@ -169,7 +181,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       chrome.runtime.sendMessage({ action: "STOP_SCRAPE" }, () => {
         // Suppress any runtime errors if background was inactive
         const err = chrome.runtime.lastError;
-        
+
         chrome.storage.local.clear(() => {
           const originalText = btnClearSaved.innerText;
           btnClearSaved.innerText = "✓ Database Wiped!";
@@ -183,7 +195,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-
   /**
    * Refreshes the popup interface components based on service worker state
    */
@@ -195,42 +206,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (status === "IDLE") {
       switchPanel(panelConfig);
       updateBadge("Idle", "");
-    } 
-    else if (status === "RUNNING") {
+    } else if (status === "RUNNING") {
       switchPanel(panelProgress);
       updateBadge("Scraping...", "scraping");
-      
+
       // Update progress metrics
       statusMessage.innerText = msg || "Scraping Amazon list page...";
       progressCount.innerText = list.length;
       progressPageCount.innerText = state.page || 1;
-      
+
       // Infinite scroll pulsing effect for percentage ring during list scraping
       setProgress(50);
       progressPercentage.innerText = "•••";
-    } 
-    else if (status === "ITEMIZING") {
+    } else if (status === "ITEMIZING") {
       switchPanel(panelProgress);
       updateBadge("Itemizing...", "scraping");
-      
+
       statusMessage.innerText = msg || "Fetching item details...";
       progressCount.innerText = list.length;
       progressPageCount.innerText = `${state.currentFetchIndex}/${state.totalFetchCount}`;
-      
+
       // Update percentage circle
       setProgress(state.progress || 0);
       progressPercentage.innerText = `${state.progress || 0}%`;
-    } 
-    else if (status === "COMPLETED") {
+    } else if (status === "COMPLETED") {
       switchPanel(panelComplete);
       updateBadge("Done", "completed");
-      
+
       // Compute total spent
       const total = list.reduce((acc, t) => acc + t.amount, 0);
       sumTotalSpend.innerText = formatCurrency(total);
       sumTxCount.innerText = list.length;
-    } 
-    else if (status === "ERROR") {
+    } else if (status === "ERROR") {
       switchPanel(panelConfig);
       updateBadge("Error", "");
       alert(`Scraping Error occurred: ${msg}`);
@@ -241,7 +248,7 @@ document.addEventListener("DOMContentLoaded", async () => {
    * Animates transition between panels
    */
   function switchPanel(panelEl) {
-    [panelConfig, panelProgress, panelComplete].forEach(p => {
+    [panelConfig, panelProgress, panelComplete].forEach((p) => {
       p.classList.remove("active");
     });
     panelEl.classList.add("active");
@@ -267,10 +274,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function formatCurrency(val) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
     }).format(val);
   }
 });
