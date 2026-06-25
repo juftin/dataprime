@@ -25,3 +25,6 @@ Thumbs.db
 
 # Node modules
 node_modules/
+
+# Bun coverage output
+coverage/
