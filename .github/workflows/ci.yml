@@ -14,10 +14,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -48,20 +51,19 @@ jobs:
         run: check-jsonschema --schemafile https://json.schemastore.org/chrome-manifest.json manifest.json
 
   test:
-    name: Unit Tests (Node ${{ matrix.node-version }})
+    name: Unit Tests (Bun)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [18, 20, 22]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ matrix.node-version }}
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
 
       - name: Install Task
         uses: arduino/setup-task@v2

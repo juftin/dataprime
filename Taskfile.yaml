@@ -9,9 +9,9 @@ tasks:
       - task --list-all
 
   install:
-    desc: Install development dependencies (None required for pure Web Extension)
+    desc: Install development dependencies via Bun
     cmds:
-      - echo "DataPrime Chrome Extension uses native Web APIs and requires zero dependencies!"
+      - bun install
 
   lint:
     desc: Validate manifest syntax, code style (Prettier), and code quality (ESLint)
@@ -25,17 +25,17 @@ tasks:
       - test -f popup/popup.html && echo "✓ popup/popup.html exists"
       - test -f dashboard/results.html && echo "✓ dashboard/results.html exists"
       - echo "Running Prettier formatting check..."
-      - npx prettier --check .
+      - bunx prettier --check .
       - echo "Running ESLint check..."
-      - npx eslint .
+      - bunx eslint .
 
   fix:
     desc: Auto-format styles and resolve minor linting issues
     cmds:
       - echo "Running Prettier formatting auto-write..."
-      - npx prettier --write .
+      - bunx prettier --write .
       - echo "Running ESLint auto-fix..."
-      - npx eslint --fix .
+      - bunx eslint --fix .
 
   check:
     desc: General static check (linting + unit tests)
@@ -44,10 +44,10 @@ tasks:
       - task: test
 
   test:
-    desc: Run parser and transaction deduplication unit tests with experimental coverage
+    desc: Run parser and transaction deduplication unit tests with coverage via Bun
     cmds:
-      - echo "Running unit tests with coverage..."
-      - node --test --experimental-test-coverage tests/parser.test.js
+      - echo "Running unit tests via Bun..."
+      - bun test --coverage tests/parser.test.js
 
   zip:
     desc: Pack the extension into a distributable zip archive

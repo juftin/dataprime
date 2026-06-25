@@ -22,3 +22,6 @@ Thumbs.db
 .settings/
 *.sublime-project
 *.sublime-workspace
+
+# Node modules
+node_modules/

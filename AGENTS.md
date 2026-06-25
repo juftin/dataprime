@@ -22,7 +22,7 @@ dataprime/
 │   ├── results.css        # Premium dark-mode analytics visual style
 │   └── results.js         # Coordinates dashboard charts, data exports, and KPI stats
 ├── tests/
-│   └── parser.test.js     # Native Node.js unit test suite (17 distinct test blocks)
+│   └── parser.test.js     # Native Bun unit test suite (21 distinct test blocks)
 └── Taskfile.yaml          # Orchestration tasks (formatting, checking, and packaging)
 ```
 
@@ -75,9 +75,9 @@ Provides a rich, interactive glassmorphic UI displaying purchase intelligence:
 
 ### 4. Zero-Dependency Testing Engine (`tests/parser.test.js`)
 
-Executes **17 distinct unit tests** natively under Node's test runner (`node --test`) in ~85ms:
+Executes **21 distinct unit tests** natively under Bun's test runner (`bun test`) in ~35ms:
 
-- **Browser API Mocks**: Emulates `globalThis.window` and `globalThis.chrome` in Node's runtime, letting tests run directly against production scripts.
+- **Browser API Mocks**: Emulates `globalThis.window` and `globalThis.chrome` in Bun's runtime, letting tests run directly against production scripts.
 - **Code Harmonization**: Integrates via a hybrid export hook at the bottom of `content.js`, ensuring zero duplication of production code.
 
 ---
@@ -90,7 +90,7 @@ All development commands are governed by `Taskfile.yaml` to ensure cross-environ
 | ------------ | -------------------------------------------------------------------------------------------------- |
 | `task lint`  | Validates `manifest.json` formatting, checks file integrity, runs Prettier check, and runs ESLint. |
 | `task fix`   | Automatically formats project files using Prettier and runs ESLint auto-fixes.                     |
-| `task test`  | Runs the zero-dependency Node.js unit tests with native experimental code coverage.                |
+| `task test`  | Runs the zero-dependency Bun unit tests with native code coverage.                                 |
 | `task check` | Pipeline check running linting validation followed by the unit tests.                              |
 | `task build` | Packaging script assembling assets and compiling them into `dataprime-extension.zip`.              |
 

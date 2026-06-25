@@ -19,38 +19,27 @@ repos:
         args:
           ["--schemafile", "https://json.schemastore.org/chrome-manifest.json"]
 
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.1.0
-    hooks:
-      - id: prettier
-        types_or: [javascript, css, html, json, markdown]
-        additional_dependencies:
-          - prettier@3.2.5
-
-  - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v9.0.0
-    hooks:
-      - id: eslint
-        files: \.[jt]sx?$
-        types: [file]
-        additional_dependencies:
-          - eslint@9.0.0
-          - globals@15.0.0
-          - "@eslint/js@9.0.0"
-
   - repo: local
     hooks:
+      - id: prettier
+        name: Prettier
+        entry: bunx prettier --check
+        files: \.(js|css|html|json|md)$
+        language: system
+      - id: eslint
+        name: ESLint
+        entry: bunx eslint
+        files: \.[jt]sx?$
+        types: [file]
+        language: system
       - id: test
         name: Run Unit Tests
-        entry: node --test tests/parser.test.js
+        entry: bun test tests/parser.test.js
         language: system
         pass_filenames: false
         always_run: true
-
-  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.16.0
-    hooks:
       - id: commitlint
-        additional_dependencies:
-          - commitlint-config-gitmoji
+        name: commitlint
+        entry: bunx commitlint --edit
+        language: system
         stages: [commit-msg]
