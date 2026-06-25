@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "DataPrime - Amazon Transaction Tracker",
   "version": "1.0.0",
-  "description": "Scrapes and summarizes your Amazon transactions, providing itemized details and spending insights inside a gorgeous interactive dashboard.",
+  "description": "Scrapes your Amazon transactions, providing itemized details and spending insights inside a gorgeous interactive dashboard.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": ["https://*.amazon.com/*"],
   "action": {

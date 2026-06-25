@@ -849,7 +849,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   : ""
               }
             </div>
-            
+
             <div class="items-list">
               ${itemsListHtml}
             </div>

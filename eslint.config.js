@@ -27,6 +27,7 @@ module.exports = [
         confirm: "readonly",
         DOMParser: "readonly",
         NodeFilter: "readonly",
+        Intl: "readonly",
 
         // WebExtension globals
         chrome: "readonly",
