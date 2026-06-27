@@ -29,6 +29,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const statusMessage = document.getElementById("statusMessage");
   const progressCount = document.getElementById("progressCount");
   const progressPageCount = document.getElementById("progressPageCount");
+  const progressCountLabel = document.getElementById("progressCountLabel");
+  const progressPageLabel = document.getElementById("progressPageLabel");
 
   const sumTotalSpend = document.getElementById("sumTotalSpend");
   const sumTxCount = document.getElementById("sumTxCount");
@@ -213,6 +215,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateBadge("Scraping...", "scraping");
 
       // Update progress metrics
+      progressCountLabel.innerText = "Parsed";
+      progressPageLabel.innerText = "Pages";
       statusMessage.innerText = msg || "Scraping Amazon list page...";
       progressCount.innerText = list.length;
       progressPageCount.innerText = state.page || 1;
@@ -246,9 +250,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       switchPanel(panelProgress);
       updateBadge("Itemizing...", "scraping");
 
+      progressCountLabel.innerText = "Itemized";
+      progressPageLabel.innerText = "Transactions";
       statusMessage.innerText = msg || "Fetching item details...";
-      progressCount.innerText = list.length;
-      progressPageCount.innerText = `${state.currentFetchIndex}/${state.totalFetchCount}`;
+      progressCount.innerText = `${state.currentFetchIndex}`;
+      progressPageCount.innerText = `${state.totalFetchCount}`;
 
       // Update percentage circles
       setOuterProgress(100);
