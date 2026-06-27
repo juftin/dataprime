@@ -651,8 +651,8 @@ input:checked + .slider:before {
 }
 
 .progress-spinner {
-  width: 22px;
-  height: 22px;
+  width: 30px;
+  height: 30px;
   background: var(--primary-gradient);
   clip-path: polygon(
     50% 0%,
@@ -666,9 +666,9 @@ input:checked + .slider:before {
     2% 35%,
     39% 35%
   );
-  animation: spin 2.5s linear infinite;
+  animation: spin 5s linear infinite;
   display: inline-block;
-  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.6));
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.6));
 }
 
 @keyframes spin {
