@@ -119,26 +119,32 @@ body::after {
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 30px;
 }
 
 .logo-orb {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: var(--indigo-gradient);
+  width: 64px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
-  font-weight: 800;
-  font-size: 16px;
-  letter-spacing: 0.5px;
+}
+
+.logo-orb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.35));
+}
+
+.brand:hover .logo-orb img {
+  transform: scale(1.15) rotate(3deg);
 }
 
 .brand-text h1 {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 800;
   line-height: 1.1;
   background: linear-gradient(to right, #ffffff, #c7d2fe);
@@ -147,7 +153,7 @@ body::after {
 }
 
 .brand-text p {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-muted);
   font-weight: 500;
   text-transform: uppercase;

@@ -731,7 +731,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (filteredTransactions.length === 0) {
       transactionsTableBody.innerHTML = `
         <tr class="empty-state">
-          <td colspan="6">
+          <td colspan="7">
             <div class="empty-inner">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="13" y2="17"></line></svg>
               <h4>No matching records</h4>
@@ -765,6 +765,26 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
 
+      // Calculate shipping and tax for UI column
+      let shippingAndTaxVal = 0;
+      if (hasItems) {
+        if (tx.summary) {
+          if (isRefund) {
+            const diff =
+              (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0);
+            shippingAndTaxVal = -Math.abs(diff);
+          } else {
+            const diff =
+              (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0);
+            shippingAndTaxVal = Math.abs(diff);
+          }
+        } else {
+          const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
+          shippingAndTaxVal = isRefund ? -Math.abs(diff) : Math.abs(diff);
+        }
+        shippingAndTaxVal = parseFloat(shippingAndTaxVal.toFixed(2));
+      }
+
       // Master Row
       const row = document.createElement("tr");
       row.className = "tx-row";
@@ -780,6 +800,9 @@ document.addEventListener("DOMContentLoaded", () => {
           </span>
         </td>
         <td class="pm-col">${escapeHtml(tx.paymentMethod || "Account Bal")}</td>
+        <td class="text-right amount-col ${isRefund && shippingAndTaxVal !== 0 ? "refund" : ""}">
+          ${hasItems ? (isRefund && shippingAndTaxVal !== 0 ? `+${formatCurrency(Math.abs(shippingAndTaxVal))}` : formatCurrency(shippingAndTaxVal)) : "—"}
+        </td>
         <td class="text-right amount-col ${isRefund ? "refund" : ""}">
           ${isRefund ? `+${formatCurrency(Math.abs(tx.amount))}` : formatCurrency(tx.amount)}
         </td>
@@ -862,7 +885,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       detailsRow.innerHTML = `
-        <td colspan="6" class="details-cell">
+        <td colspan="7" class="details-cell">
           <div class="items-container">
             <div class="details-subheader">
               <h4>Itemized Invoice Records</h4>
