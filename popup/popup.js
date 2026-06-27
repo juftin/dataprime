@@ -259,7 +259,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Update percentage circles
       setOuterProgress(100);
       setInnerProgress(state.progress || 0);
-      progressPercentage.innerText = `${state.progress || 0}%`;
+      if (state.progress === 100) {
+        progressPercentage.innerHTML = `<div class="progress-spinner"></div>`;
+      } else {
+        progressPercentage.innerText = `${state.progress || 0}%`;
+      }
     } else if (status === "COMPLETED") {
       switchPanel(panelComplete);
       updateBadge("Done", "completed");
