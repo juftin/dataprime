@@ -1420,6 +1420,10 @@ async function runItemizationInContentScript() {
           } else {
             const items = parseOrderDetailsHtml(html, tx.orderId);
             tx.items = items;
+            const summary = parseOrderSummary(html);
+            if (summary) {
+              tx.summary = summary;
+            }
             logToHUD(
               `[Worker ${workerId}] Successfully itemized ${items.length} items for Order ${tx.orderId}`,
             );
@@ -1691,6 +1695,42 @@ function parseOrderDetailsHtml(html, orderId) {
 }
 
 /**
+ * Extracts order summary values (subtotals, totals, refunds) from the order details HTML string.
+ */
+function parseOrderSummary(html) {
+  const summary = {};
+
+  // Clean up html string to make regex matching easier (normalize spaces)
+  const cleanHtml = html.replace(/\s+/g, " ");
+
+  // Helper to extract dollar amount near a keyword
+  const extractAmountNearKeyword = (keyword) => {
+    const idx = cleanHtml.indexOf(keyword);
+    if (idx === -1) return null;
+    const sub = cleanHtml.substring(idx, idx + 400);
+    const match = sub.match(/\$[0-9,]+\.[0-9]{2}/);
+    return match ? parseFloat(match[0].replace(/[^\d.]/g, "")) : null;
+  };
+
+  summary.itemSubtotal = extractAmountNearKeyword("Item(s) Subtotal");
+  summary.shippingHandling =
+    extractAmountNearKeyword("Shipping &amp; Handling") ??
+    extractAmountNearKeyword("Shipping & Handling");
+  summary.taxCollected = extractAmountNearKeyword(
+    "Estimated tax to be collected",
+  );
+  summary.grandTotal = extractAmountNearKeyword("Grand Total:");
+
+  // Refund values (often inside popovers/inlineContent attributes)
+  summary.itemsRefund = extractAmountNearKeyword("Item(s) refund");
+  summary.taxRefund = extractAmountNearKeyword("Tax refund");
+  summary.refundTotal = extractAmountNearKeyword("Refund Total");
+
+  const hasValues = Object.values(summary).some((val) => val !== null);
+  return hasValues ? summary : null;
+}
+
+/**
  * Resilient RegExp parsing of Amazon's Order Details page HTML (as a fallback)
  */
 function parseOrderDetailsHtmlRegexFallback(html, orderId) {
@@ -1927,5 +1967,6 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
     isElementVisible,
     findPreviousButton,
     findNextButton,
+    parseOrderSummary,
   };
 }

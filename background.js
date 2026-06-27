@@ -371,10 +371,24 @@ async function seedDemoData() {
     // Determine random transaction structure
     const amountPaid = parseFloat((15 + Math.random() * 250).toFixed(2));
 
+    // Calculate realistic shipping and tax
+    const hasTax = Math.random() > 0.1;
+    const hasShipping = Math.random() > 0.6;
+    const shipping = hasShipping ? 5.99 : 0.0;
+    const taxRate = hasTax ? 0.0825 : 0.0;
+
+    const itemSubtotal = parseFloat(
+      ((amountPaid - shipping) / (1 + taxRate)).toFixed(2),
+    );
+    const taxCollected = parseFloat((itemSubtotal * taxRate).toFixed(2));
+    const grandTotal = parseFloat(
+      (itemSubtotal + shipping + taxCollected).toFixed(2),
+    );
+
     // Create 1-3 itemized items
     const items = [];
     const itemCount = Math.floor(1 + Math.random() * 3);
-    let remainingAmount = amountPaid;
+    let remainingAmount = itemSubtotal;
 
     for (let j = 0; j < itemCount; j++) {
       const itemPrice =
@@ -436,7 +450,7 @@ async function seedDemoData() {
     mockTransactions.push({
       id: orderId,
       date: dateISO,
-      amount: amountPaid,
+      amount: grandTotal,
       description: `Payment for Order ${orderId}`,
       orderId,
       detailsLink: `https://www.amazon.com/gp/your-account/order-details?orderID=${orderId}`,
@@ -446,6 +460,12 @@ async function seedDemoData() {
         "Amex (*1002)",
         "Amazon Gift Card",
       ][Math.floor(Math.random() * 4)],
+      summary: {
+        itemSubtotal,
+        shippingHandling: shipping,
+        taxCollected,
+        grandTotal,
+      },
       items,
     });
   }
@@ -477,6 +497,82 @@ async function seedDemoData() {
       ],
     });
   }
+
+  // Add a dedicated partial refund test case (Order with 2 items, only 1 returned)
+  const partialRefundDate = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000); // 2 days ago
+  const partialRefundOrderId = "114-1234567-7654321";
+
+  // Original Purchase
+  mockTransactions.push({
+    id: partialRefundOrderId,
+    date: new Date(partialRefundDate.getTime() - 5 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0], // 7 days ago
+    amount: 37.89,
+    description: `Payment for Order ${partialRefundOrderId}`,
+    orderId: partialRefundOrderId,
+    detailsLink: `https://www.amazon.com/gp/your-account/order-details?orderID=${partialRefundOrderId}`,
+    paymentMethod: "Visa (*4321)",
+    summary: {
+      itemSubtotal: 35.0,
+      shippingHandling: 0.0,
+      taxCollected: 2.89,
+      grandTotal: 37.89,
+    },
+    items: [
+      {
+        title: "Premium French Press Coffee Maker (34 oz)",
+        url: "https://www.amazon.com/gp/product/B07M123456",
+        price: 20.0,
+        quantity: 1,
+        imageUrl: "https://picsum.photos/seed/press/100/100",
+        seller: "Amazon.com",
+      },
+      {
+        title: "Double-Walled Borosilicate Espresso Glasses (Set of 2)",
+        url: "https://www.amazon.com/gp/product/B07M654321",
+        price: 15.0,
+        quantity: 1,
+        imageUrl: "https://picsum.photos/seed/glass/100/100",
+        seller: "Anker Direct",
+      },
+    ],
+  });
+
+  // Subsequent Partial Refund (Refund for the glasses)
+  mockTransactions.push({
+    id: `refund-${partialRefundOrderId}`,
+    date: partialRefundDate.toISOString().split("T")[0],
+    amount: -16.24,
+    description: `Refund for Order ${partialRefundOrderId}`,
+    orderId: partialRefundOrderId,
+    detailsLink: `https://www.amazon.com/gp/your-account/order-details?orderID=${partialRefundOrderId}`,
+    paymentMethod: "Refund to Card",
+    summary: {
+      itemsRefund: 15.0,
+      taxRefund: 1.24,
+      refundTotal: 16.24,
+    },
+    // The details fetch returns all items from the original order, representing Amazon's real behavior
+    items: [
+      {
+        title: "Premium French Press Coffee Maker (34 oz)",
+        url: "https://www.amazon.com/gp/product/B07M123456",
+        price: 20.0,
+        quantity: 1,
+        imageUrl: "https://picsum.photos/seed/press/100/100",
+        seller: "Amazon.com",
+      },
+      {
+        title: "Double-Walled Borosilicate Espresso Glasses (Set of 2)",
+        url: "https://www.amazon.com/gp/product/B07M654321",
+        price: 15.0,
+        quantity: 1,
+        imageUrl: "https://picsum.photos/seed/glass/100/100",
+        seller: "Anker Direct",
+      },
+    ],
+  });
 
   // Sort descending
   mockTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));

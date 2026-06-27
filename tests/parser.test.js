@@ -42,6 +42,7 @@ const {
   isElementVisible,
   findPreviousButton,
   findNextButton,
+  parseOrderSummary,
 } = require("../content.js");
 
 // Helper to reset scrapingState duplicate occurrence counters before tests
@@ -843,4 +844,81 @@ test("21. parseOrderDetailsHtmlRegexFallback() - Skip promotional/advertisement 
   assert.strictEqual(items.length, 1);
   assert.strictEqual(items[0].title, "Valid Purchase Item");
   assert.strictEqual(items[0].price, 12.99);
+});
+
+test("22. parseOrderSummary() - Parsing full and refund summaries", () => {
+  const mockHtml = `
+    <div class="a-column a-span12">
+        <div class="a-row a-spacing-small">
+            <h5>Order Summary</h5>
+        </div>
+        <ul class="a-unordered-list a-nostyle a-vertical">
+            <li>
+                <div class="a-row od-line-item-row">
+                    <div class="a-column a-span7 od-line-item-row-label">
+                        <span class="a-size-base"><span>Item(s) Subtotal: </span></span>
+                    </div>
+                    <div class="a-column a-span5 od-line-item-row-content a-span-last">
+                        <span class="a-size-base a-color-base">$115.95</span>
+                    </div>
+                </div>
+            </li>
+            <li>
+                <div class="a-row od-line-item-row">
+                    <div class="a-column a-span7 od-line-item-row-label">
+                        <span class="a-size-base"><span>Shipping &amp; Handling:</span></span>
+                    </div>
+                    <div class="a-column a-span5 od-line-item-row-content a-span-last">
+                        <span class="a-size-base a-color-base">$0.00</span>
+                    </div>
+                </div>
+            </li>
+            <li>
+                <div class="a-row od-line-item-row">
+                    <div class="a-column a-span7 od-line-item-row-label">
+                        <span class="a-size-base"><span>Estimated tax to be collected:</span></span>
+                    </div>
+                    <div class="a-column a-span5 od-line-item-row-content a-span-last">
+                        <span class="a-size-base a-color-base">$10.60</span>
+                    </div>
+                </div>
+            </li>
+            <li>
+                <div class="a-row od-line-item-row">
+                    <div class="a-column a-span7 od-line-item-row-label">
+                        <span class="a-size-base a-color-base a-text-bold"><span>Grand Total:</span></span>
+                    </div>
+                    <div class="a-column a-span5 od-line-item-row-content a-span-last">
+                        <span class="a-size-base a-color-base a-text-bold">$126.83</span>
+                    </div>
+                </div>
+            </li>
+            <li>
+                <div class="a-row od-line-item-row">
+                    <div class="a-column a-span7 od-line-item-row-label">
+                        <span class="a-declarative" data-action="a-popover" data-a-popover="{&quot;closeButton&quot;:&quot;false&quot;,&quot;name&quot;:&quot;charge-summary-inline-popover-6&quot;,&quot;width&quot;:&quot;350&quot;,&quot;inlineContent&quot;:&quot;\\u003cdiv class=\\&quot;a-row od-line-item-row\\&quot;&gt;\\n                        \\u003cdiv class=\\&quot;a-column a-span9 od-line-item-row-label\\&quot;&gt;\\n                            \\n                            \\n\\n\\n\\n\\n\\n\\n\\n    \\n    \\n    \\n        \\u003cspan class=\\&quot;a-size-base\\&quot;&gt;\\n            \\u003cspan&gt;Item(s) refund\\u003c/span&gt;\\n        \\u003c/span&gt;\\n    \\n\\n                        \\u003c/div&gt;\\n                        \\u003cdiv class=\\&quot;a-column a-span3 od-line-item-row-content a-span-last\\&quot;&gt;\\n                            \\n                            \\n\\n\\n\\n\\n\\n\\n            \\n                \\u003cspan class=\\&quot;a-size-base a-color-base\\&quot;&gt;\\n                    $54.98\\n                \\u003c/span&gt;\\n            \\n            \\n            \\n            \\n        \\n                        \\u003c/div&gt;\\n                    \\u003c/div&gt;\\n                \\n                \\n            \\n        \\n            \\n                \\n                    \\u003cdiv class=\\&quot;a-row od-line-item-row\\&quot;&gt;\\n                        \\u003cdiv class=\\&quot;a-column a-span9 od-line-item-row-label\\&quot;&gt;\\n                            \\n                            \\n\\n\\n\\n\\n\\n\\n\\n    \\n    \\n    \\n        \\u003cspan class=\\&quot;a-size-base\\&quot;&gt;\\n            \\u003cspan&gt;Tax refund\\u003c/span&gt;\\n        \\u003c/span&gt;\\n    \\n\\n                        \\u003c/div&gt;\\n                        \\u003cdiv class=\&quot;a-column a-span3 od-line-item-row-content a-span-last\\&quot;&gt;\\n                            \\n                            \\n\\n\\n\\n\\n\\n\\n            \\n                \\u003cspan class=\&quot;a-size-base a-color-base\\&quot;&gt;\\n                    $5.03\\n                \\u003c/span&gt;\\n            \\n            \\n            \\n            \\n        \\n                        \\u003c/div&gt;\\n                    \\u003c/div&gt;\\n                \\n                \\n            \\n        \\n            \\n                \\n                    \\u003cdiv class=\\&quot;a-row od-line-item-row\\&quot;&gt;\\n                        \\u003cdiv class=\\&quot;a-column a-span9 od-line-item-row-label\\&quot;&gt;\\n                            \\n                            \\n\\n\\n\\n\\n\\n\\n\\n    \\n    \\n        \\n        \\n\\n\\n\\n\\n\\n\\u003cspan class=\\&quot;a-size-base a-color-base a-text-bold\\&quot;&gt;\\n    \\u003cspan&gt;Refund Total\\u003c/span&gt;\\n\\u003c/span&gt;\\n    \\n    \\n\\n                        \\u003c/div&gt;\\n                        \\u003cdiv class=\&quot;a-column a-span3 od-line-item-row-content a-span-last\\&quot;&gt;\\n                            \\n                            \\n\\n\\n\\n\\n\\n\\n            \\n            \\n                \\n                \\n\\n\\n\\n\\n\\u003cspan class=\\&quot;a-size-base a-color-base a-text-bold\\&quot;&gt;\\n    $60.01\\n\\u003c/span&gt;\\n            \\n            \\n            \\n        \\n                        \\u003c/div&gt;\\n                    \\u003c/div&gt;&quot;,&quot;position&quot;:&quot;triggerBottom&quot;}">
+                            <a href="javascript:void(0)" role="button" class="a-popover-trigger a-declarative">
+                                <span class="a-size-base a-color-base a-text-bold"><span>Refund Total</span></span>
+                                <i class="a-icon a-icon-popover"></i>
+                            </a>
+                        </span>
+                    </div>
+                    <div class="a-column a-span5 od-line-item-row-content a-span-last">
+                        <span class="a-size-base a-color-base a-text-bold">$60.01</span>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </div>
+  `;
+
+  const summary = parseOrderSummary(mockHtml);
+  assert.ok(summary);
+  assert.strictEqual(summary.itemSubtotal, 115.95);
+  assert.strictEqual(summary.shippingHandling, 0.0);
+  assert.strictEqual(summary.taxCollected, 10.6);
+  assert.strictEqual(summary.grandTotal, 126.83);
+  assert.strictEqual(summary.itemsRefund, 54.98);
+  assert.strictEqual(summary.taxRefund, 5.03);
+  assert.strictEqual(summary.refundTotal, 60.01);
 });
