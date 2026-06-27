@@ -23,7 +23,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnGoBack = document.getElementById("btnGoBack");
   const linkDashboard = document.getElementById("linkDashboard");
 
-  const progressCircle = document.getElementById("progressCircle");
+  const progressCircleOuter = document.getElementById("progressCircleOuter");
+  const progressCircleInner = document.getElementById("progressCircleInner");
   const progressPercentage = document.getElementById("progressPercentage");
   const statusMessage = document.getElementById("statusMessage");
   const progressCount = document.getElementById("progressCount");
@@ -36,9 +37,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   let currentPreset = "30";
 
   // Circular progress calculations
-  const circleRadius = 44;
-  const circumference = 2 * Math.PI * circleRadius;
-  progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+  const outerCircumference = 2 * Math.PI * 44;
+  const innerCircumference = 2 * Math.PI * 34;
+  progressCircleOuter.style.strokeDasharray = `${outerCircumference} ${outerCircumference}`;
+  progressCircleInner.style.strokeDasharray = `${innerCircumference} ${innerCircumference}`;
 
   // 1. Initial State Check
   // Check if background worker is already scraping
@@ -215,9 +217,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       progressCount.innerText = list.length;
       progressPageCount.innerText = state.page || 1;
 
-      // Infinite scroll pulsing effect for percentage ring during list scraping
-      setProgress(50);
-      progressPercentage.innerText = "•••";
+      // Calculate page scraping progress based on date range coverage
+      let pageProgress = 0;
+      if (state.startDate && state.endDate && list.length > 0) {
+        const startMs = new Date(state.startDate).getTime();
+        const endMs = new Date(state.endDate).getTime();
+        const totalDuration = Math.max(1, endMs - startMs);
+
+        // Get the oldest scraped transaction date
+        const txDates = list.map((t) => new Date(t.date).getTime());
+        const oldestTxMs = Math.min(...txDates);
+
+        // Scraped duration covers from endMs going back to oldestTxMs
+        const coveredDuration = Math.max(0, endMs - oldestTxMs);
+        pageProgress = Math.min(
+          100,
+          Math.round((coveredDuration / totalDuration) * 100),
+        );
+      } else {
+        const pageNum = state.page || 1;
+        pageProgress = Math.min(95, pageNum * 20);
+      }
+
+      setOuterProgress(pageProgress);
+      setInnerProgress(0);
+      progressPercentage.innerText = `${pageProgress}%`;
     } else if (status === "ITEMIZING") {
       switchPanel(panelProgress);
       updateBadge("Itemizing...", "scraping");
@@ -226,8 +250,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       progressCount.innerText = list.length;
       progressPageCount.innerText = `${state.currentFetchIndex}/${state.totalFetchCount}`;
 
-      // Update percentage circle
-      setProgress(state.progress || 0);
+      // Update percentage circles
+      setOuterProgress(100);
+      setInnerProgress(state.progress || 0);
       progressPercentage.innerText = `${state.progress || 0}%`;
     } else if (status === "COMPLETED") {
       switchPanel(panelComplete);
@@ -268,9 +293,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   /**
    * Sets progress ring fill percent
    */
-  function setProgress(percent) {
-    const offset = circumference - (percent / 100) * circumference;
-    progressCircle.style.strokeDashoffset = offset;
+  function setOuterProgress(percent) {
+    const offset = outerCircumference - (percent / 100) * outerCircumference;
+    progressCircleOuter.style.strokeDashoffset = offset;
+  }
+
+  function setInnerProgress(percent) {
+    const offset = innerCircumference - (percent / 100) * innerCircumference;
+    progressCircleInner.style.strokeDashoffset = offset;
   }
 
   function formatCurrency(val) {

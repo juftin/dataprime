@@ -481,8 +481,16 @@ input:checked + .slider:before {
 .progress-ring__circle {
   transition: stroke-dashoffset 0.35s;
   transform-origin: 50% 50%;
+}
+
+.progress-ring__outer {
   stroke-dasharray: 276.46; /* 2 * PI * 44 */
   stroke-dashoffset: 276.46;
+}
+
+.progress-ring__inner {
+  stroke-dasharray: 213.63; /* 2 * PI * 34 */
+  stroke-dashoffset: 213.63;
 }
 
 .progress-percentage {

@@ -143,6 +143,7 @@
           <div class="progress-box">
             <div class="progress-ring-container">
               <svg class="progress-ring" width="100" height="100">
+                <!-- Outer ring (Page loop progress) -->
                 <circle
                   class="progress-ring__circle-bg"
                   stroke="rgba(255,255,255,0.05)"
@@ -153,12 +154,32 @@
                   cy="50"
                 />
                 <circle
-                  class="progress-ring__circle"
-                  id="progressCircle"
+                  class="progress-ring__circle progress-ring__outer"
+                  id="progressCircleOuter"
                   stroke="url(#indigoGrad)"
                   stroke-width="6"
                   fill="transparent"
                   r="44"
+                  cx="50"
+                  cy="50"
+                />
+                <!-- Inner ring (Itemization progress) -->
+                <circle
+                  class="progress-ring__circle-bg"
+                  stroke="rgba(255,255,255,0.03)"
+                  stroke-width="5"
+                  fill="transparent"
+                  r="34"
+                  cx="50"
+                  cy="50"
+                />
+                <circle
+                  class="progress-ring__circle progress-ring__inner"
+                  id="progressCircleInner"
+                  stroke="url(#violetGrad)"
+                  stroke-width="5"
+                  fill="transparent"
+                  r="34"
                   cx="50"
                   cy="50"
                 />
@@ -171,7 +192,17 @@
                     y2="100%"
                   >
                     <stop offset="0%" stop-color="#6366f1" />
-                    <stop offset="100%" stop-color="#a855f7" />
+                    <stop offset="100%" stop-color="#8b5cf6" />
+                  </linearGradient>
+                  <linearGradient
+                    id="violetGrad"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <stop offset="0%" stop-color="#a855f7" />
+                    <stop offset="100%" stop-color="#ec4899" />
                   </linearGradient>
                 </defs>
               </svg>
