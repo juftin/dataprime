@@ -756,11 +756,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }));
       }
       const hasItems = displayItems.length > 0;
-
       let itemsCount = 0;
+      let subtotalSum = 0;
       if (hasItems) {
         itemsCount = displayItems.reduce(
           (acc, i) => acc + (i.quantity || 1),
+          0,
+        );
+        subtotalSum = displayItems.reduce(
+          (acc, i) => acc + (i.price || 0) * (i.quantity || 1),
           0,
         );
       }
@@ -815,14 +819,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Hydrate itemized templates inside drawer
       let itemsListHtml = "";
-      let subtotalSum = 0;
       let receiptDiff = 0;
 
       if (hasItems) {
         itemsListHtml = displayItems
           .map((item) => {
             const itemSubtotal = (item.price || 0) * (item.quantity || 1);
-            subtotalSum += itemSubtotal;
 
             const thumbHtml = item.imageUrl
               ? `<div class="item-thumb"><img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" onerror="this.outerHTML='<div class=\\'no-img\\'>🛒</div>'"></div>`
