@@ -651,13 +651,24 @@ input:checked + .slider:before {
 }
 
 .progress-spinner {
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
   background: var(--primary-gradient);
-  border-radius: 4px;
-  animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+  animation: spin 2.5s linear infinite;
   display: inline-block;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.6));
 }
 
 @keyframes spin {
