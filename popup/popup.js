@@ -252,7 +252,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       progressCountLabel.innerText = "Itemized";
       progressPageLabel.innerText = "Transactions";
-      statusMessage.innerText = msg || "Fetching item details...";
       progressCount.innerText = `${state.currentFetchIndex}`;
       progressPageCount.innerText = `${state.totalFetchCount}`;
 
@@ -261,8 +260,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       setInnerProgress(state.progress || 0);
       if (state.progress === 100) {
         progressPercentage.innerHTML = `<div class="progress-spinner"></div>`;
+        statusMessage.innerText = "Processing Data...";
       } else {
         progressPercentage.innerText = `${state.progress || 0}%`;
+        statusMessage.innerText = msg || "Fetching item details...";
       }
     } else if (status === "COMPLETED") {
       switchPanel(panelComplete);
