@@ -656,15 +656,17 @@ input:checked + .slider:before {
   background: var(--primary-gradient);
   clip-path: polygon(
     50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
+    56% 39.6%,
+    93.3% 25%,
+    62% 50%,
+    93.3% 75%,
+    56% 60.4%,
+    50% 100%,
+    44% 60.4%,
+    6.7% 75%,
+    38% 50%,
+    6.7% 25%,
+    44% 39.6%
   );
   animation: spin 5s linear infinite;
   display: inline-block;
