@@ -59,24 +59,9 @@
             </div>
           </div>
 
-          <!-- Toggle Itemized Details -->
-          <div class="form-group toggle-group">
-            <div class="toggle-text">
-              <span class="toggle-title">Fetch Itemized Details</span>
-              <span class="toggle-desc"
-                >Retrieve item descriptions, prices, and images from order
-                pages.</span
-              >
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="fetchItemized" checked />
-              <span class="slider"></span>
-            </label>
-          </div>
-
           <!-- Primary Action Button -->
           <button id="btnStartScrape" class="btn btn-primary btn-glow">
-            <span>Scrape & Analyze Spending</span>
+            <span>Analyze Spending</span>
             <svg
               width="18"
               height="18"
@@ -138,7 +123,7 @@
           </div>
         </section>
 
-        <!-- Panel 2: Scraping Progress Panel -->
+        <!-- Panel 2: Analysis Progress Panel -->
         <section id="panelProgress" class="panel">
           <div class="progress-box">
             <div class="progress-ring-container">
@@ -210,12 +195,20 @@
             </div>
 
             <div class="status-label" id="statusMessage">
-              Preparing Scraper...
+              Preparing Analysis...
             </div>
             <div class="progress-stats">
               <div class="stat-bubble">
                 <span class="val" id="progressCount">0</span>
                 <span class="lbl" id="progressCountLabel">Parsed</span>
+              </div>
+              <div
+                class="stat-bubble"
+                id="progressCacheBubble"
+                style="display: none"
+              >
+                <span class="val" id="progressCacheCount">0</span>
+                <span class="lbl">From Cache</span>
               </div>
               <div class="stat-bubble">
                 <span class="val" id="progressPageCount">0</span>
@@ -225,7 +218,7 @@
           </div>
 
           <button id="btnCancelScrape" class="btn btn-danger">
-            <span>Cancel Scraping</span>
+            <span>Cancel Analysis</span>
           </button>
         </section>
 
@@ -248,7 +241,7 @@
             </div>
             <h3>Analysis Complete!</h3>
             <p id="completeDesc">
-              Scraped and itemized your transaction history.
+              Analyzed and itemized your transaction history.
             </p>
           </div>
 

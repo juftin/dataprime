@@ -227,12 +227,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateBadge("Idle", "");
     } else if (status === "RUNNING") {
       switchPanel(panelProgress);
-      updateBadge("Scraping...", "scraping");
+      updateBadge("Analyzing...", "scraping");
 
       // Update progress metrics
       progressCountLabel.innerText = "Parsed";
       progressPageLabel.innerText = "Pages";
-      statusMessage.innerText = msg || "Scraping Amazon list page...";
+      statusMessage.innerText = msg || "Analyzing Amazon list page...";
       progressCount.innerText = list.length;
       progressPageCount.innerText = state.page || 1;
       if (progressCacheBubble) progressCacheBubble.style.display = "none";
@@ -295,7 +295,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else if (status === "ERROR") {
       switchPanel(panelConfig);
       updateBadge("Error", "");
-      alert(`Scraping Error occurred: ${msg}`);
+      alert(`Analysis Error occurred: ${msg}`);
     }
   }
 

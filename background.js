@@ -279,7 +279,7 @@ function handleBackgroundMessage(request, sender, sendResponse) {
  */
 async function finalizeScraping() {
   activeScrape.status = "COMPLETED";
-  activeScrape.message = `Successfully scraped and analyzed ${activeScrape.transactions.length} transactions!`;
+  activeScrape.message = `Successfully analyzed ${activeScrape.transactions.length} transactions!`;
   activeScrape.progress = 100;
 
   // Cleanup: close the inactive background scraper tab cleanly!

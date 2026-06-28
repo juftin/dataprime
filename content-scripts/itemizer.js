@@ -184,7 +184,7 @@ async function runItemizationInContentScript() {
           action: "SCRAPE_STATUS",
           payload: {
             status: "ITEMIZING",
-            message: `Scraping details for order ${currentIdx}/${totalCount}...`,
+            message: `Analyzing details for order ${currentIdx}/${totalCount}...`,
             progress,
             currentFetchIndex: currentIdx,
             totalFetchCount: totalCount,

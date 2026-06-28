@@ -43,7 +43,7 @@ function ensureHUD() {
     margin-bottom: 14px;
   `;
   header.innerHTML = `
-    <span style="font-weight: 700; font-size: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">DataPrime Scraper</span>
+    <span style="font-weight: 700; font-size: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">DataPrime Analyzer</span>
     <span id="pl-hud-status" style="font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 9999px; background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.25);">IDLE</span>
   `;
   hudElement.appendChild(header);
@@ -84,7 +84,7 @@ function ensureHUD() {
       <div id="pl-hud-page" style="font-size: 20px; font-weight: 800; color: #f1f5f9; text-shadow: 0 0 10px rgba(255,255,255,0.1);">0</div>
     </div>
     <div style="background: rgba(255, 255, 255, 0.02); border-radius: 10px; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.04); text-align: center;">
-      <div style="color: #94a3b8; font-size: 10px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 2px;">Scraped Items</div>
+      <div style="color: #94a3b8; font-size: 10px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 2px;">Analyzed Items</div>
       <div id="pl-hud-matches" style="font-size: 20px; font-weight: 800; color: #f1f5f9; text-shadow: 0 0 10px rgba(255,255,255,0.1);">0</div>
     </div>
   `;
@@ -99,7 +99,7 @@ function ensureHUD() {
     letter-spacing: 0.05em;
     margin-bottom: 6px;
   `;
-  consoleTitle.innerText = "Scraper Feedback Loop Logs";
+  consoleTitle.innerText = "Analyzer Feedback Loop Logs";
   hudElement.appendChild(consoleTitle);
 
   hudConsole = document.createElement("div");
@@ -246,7 +246,7 @@ function updateHUDStatus(status, page, matches) {
 function updateTabTitle(status) {
   if (typeof document === "undefined") return;
 
-  let titleStatus = status || "Scraping";
+  let titleStatus = status || "Analyzing";
   let detailStr = "";
 
   if (titleStatus === "COMPLETED") {
@@ -267,7 +267,7 @@ function updateTabTitle(status) {
     const pageNum = scrapingState.pageCount || 1;
     const txCount = scrapingState.scrapedTransactions.length;
     detailStr = `Pg ${pageNum} (${txCount} txns)`;
-    titleStatus = "Scraping";
+    titleStatus = "Analyzing";
   }
 
   // Determine time range dynamically

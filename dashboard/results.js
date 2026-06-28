@@ -364,9 +364,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (result.lastScraped) {
       const syncDate = new Date(result.lastScraped);
-      syncTimeText.innerText = `Database: Scraped on ${syncDate.toLocaleDateString()} at ${syncDate.toLocaleTimeString()}`;
+      syncTimeText.innerText = `Database: Analyzed on ${syncDate.toLocaleDateString()} at ${syncDate.toLocaleTimeString()}`;
     } else {
-      syncTimeText.innerText = "Database: No active scrape records";
+      syncTimeText.innerText = "Database: No active analysis records";
     }
 
     updateView();
@@ -751,7 +751,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         itemsListHtml = `
           <div class="empty-inner" style="padding: 20px 0;">
-            <p style="color: var(--text-dark); font-size:12px;">Order details have not been fetched for this transaction. Run scraping with 'Fetch Itemized Details' enabled.</p>
+            <p style="color: var(--text-dark); font-size:12px;">Order details have not been fetched for this transaction. Run analysis with 'Fetch Itemized Details' enabled.</p>
           </div>
         `;
         subtotalSum = Math.abs(tx.amount);

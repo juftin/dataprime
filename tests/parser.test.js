@@ -43,6 +43,7 @@ const {
   findPreviousButton,
   findNextButton,
   parseOrderSummary,
+  updateTabTitle,
 } = require("../content.js");
 
 // Helper to reset scrapingState duplicate occurrence counters before tests
@@ -921,4 +922,64 @@ test("22. parseOrderSummary() - Parsing full and refund summaries", () => {
   assert.strictEqual(summary.itemsRefund, 54.98);
   assert.strictEqual(summary.taxRefund, 5.03);
   assert.strictEqual(summary.refundTotal, 60.01);
+});
+
+test("23. updateTabTitle() - Dynamic tab title formatting", () => {
+  const originalDocument = globalThis.document;
+
+  globalThis.document = {
+    title: "",
+  };
+
+  resetScrapingState();
+
+  // Case A: SCRAPING status with empty state
+  scrapingState.pageCount = 2;
+  scrapingState.scrapedTransactions = [];
+  updateTabTitle("SCRAPING");
+  assert.strictEqual(
+    globalThis.document.title,
+    "[DataPrime: Analyzing] Pg 2 (0 txns) | All Time",
+  );
+
+  // Case B: ITEMIZING status with progress set
+  scrapingState.startDate = "2026-01-01";
+  scrapingState.endDate = "2026-06-01";
+  scrapingState.itemizationProgress = {
+    current: 4,
+    total: 10,
+    cachedCount: 2,
+  };
+  updateTabTitle("ITEMIZING");
+  assert.strictEqual(
+    globalThis.document.title,
+    "[DataPrime: Itemizing] 4/10 orders | 2026-01-01 to 2026-06-01",
+  );
+
+  // Case C: COMPLETED status
+  scrapingState.scrapedTransactions = [
+    { date: "2026-02-10" },
+    { date: "2026-03-12" },
+  ];
+  updateTabTitle("COMPLETED");
+  assert.strictEqual(
+    globalThis.document.title,
+    "[DataPrime: Done] 2 txns | 2026-01-01 to 2026-06-01",
+  );
+
+  // Case D: Dynamic date range generation (no start/end bound set)
+  scrapingState.startDate = null;
+  scrapingState.endDate = null;
+  updateTabTitle("COMPLETED");
+  assert.strictEqual(
+    globalThis.document.title,
+    "[DataPrime: Done] 2 txns | 2026-02-10 to 2026-03-12",
+  );
+
+  // Clean up
+  if (originalDocument) {
+    globalThis.document = originalDocument;
+  } else {
+    delete globalThis.document;
+  }
 });
