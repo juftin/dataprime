@@ -318,12 +318,15 @@ async function finalizeScraping() {
  */
 function openOrFocusDashboard() {
   const url = chrome.runtime.getURL("dashboard/results.html");
-  chrome.tabs.query({ url: url }, (tabs) => {
-    if (tabs && tabs.length > 0) {
-      chrome.tabs.update(tabs[0].id, { active: true }, () => {
+  chrome.tabs.query({}, (tabs) => {
+    const existingTab = (tabs || []).find(
+      (t) => t.url && t.url.startsWith(url),
+    );
+    if (existingTab) {
+      chrome.tabs.update(existingTab.id, { active: true }, () => {
         chrome.runtime.lastError;
       });
-      chrome.windows.update(tabs[0].windowId, { focused: true }, () => {
+      chrome.windows.update(existingTab.windowId, { focused: true }, () => {
         chrome.runtime.lastError;
       });
     } else {
