@@ -164,19 +164,25 @@ function removeHUD() {
  * Appends a log line message to the HUD overlay console.
  * @param {string} msg - The log message to display.
  */
-function logToHUD(msg) {
+function logToHUD(msg, isError = false) {
   ensureHUD();
   console.log("[DataPrime HUD]", msg);
   if (hudConsole) {
     const logLine = document.createElement("div");
-    logLine.style.cssText =
-      "margin-bottom: 5px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); padding-bottom: 3px; word-break: break-all;";
+    if (isError) {
+      logLine.style.cssText =
+        "margin-bottom: 5px; padding: 4px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444; word-break: break-all;";
+    } else {
+      logLine.style.cssText =
+        "margin-bottom: 5px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); padding-bottom: 3px; word-break: break-all;";
+    }
     const timestamp = new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
     });
-    logLine.innerHTML = `<span style="color: #818cf8; font-weight: 600;">[${timestamp}]</span> ${msg}`;
+    const color = isError ? "#fca5a5" : "#818cf8";
+    logLine.innerHTML = `<span style="color: ${color}; font-weight: 600;">[${timestamp}]</span> ${msg}`;
     hudConsole.appendChild(logLine);
     hudConsole.scrollTop = hudConsole.scrollHeight;
   }

@@ -88,9 +88,8 @@ async function runItemizationInContentScript() {
       if (!scrapingState.itemizationProgress) {
         scrapingState.itemizationProgress = {};
       }
-      scrapingState.itemizationProgress.current = currentIdx;
+      scrapingState.itemizationProgress.current = completedCount;
       scrapingState.itemizationProgress.total = totalCount;
-      const progress = Math.round((currentIdx / totalCount) * 100);
 
       // Check if this transaction already has item details in the cache
       if (cacheMap.has(tx.id)) {
@@ -119,16 +118,19 @@ async function runItemizationInContentScript() {
           logToHUD(
             `Itemized ${currentIdx}/${totalCount} - Loaded from cache: ${tx.orderId}`,
           );
-          chrome.runtime.sendMessage({
-            action: "SCRAPE_STATUS",
-            payload: {
-              status: "ITEMIZING",
-              message: `Itemized ${currentIdx}/${totalCount} orders (cached)...`,
-              progress,
-              currentFetchIndex: currentIdx,
-              totalFetchCount: totalCount,
-            },
-          });
+          if (scrapingState.active) {
+            chrome.runtime.sendMessage({
+              action: "SCRAPE_STATUS",
+              payload: {
+                status: "ITEMIZING",
+                message: `Itemized ${completedCount}/${totalCount} orders (${scrapingState.itemizationProgress.cachedCount || 0} cached)...`,
+                progress: Math.round((completedCount / totalCount) * 100),
+                currentFetchIndex: completedCount,
+                totalFetchCount: totalCount,
+                cachedCount: scrapingState.itemizationProgress.cachedCount || 0,
+              },
+            });
+          }
         }
         continue;
       }
@@ -154,17 +156,20 @@ async function runItemizationInContentScript() {
           throw new Error(`HTTP ${response.status} ${response.statusText}`);
         }
 
-        const htmlText = await response.text();
-
-        // Check if we got redirected to signin page
+        // Check if we were redirected to a sign-in page
+        const finalUrl = (response.url || "").toLowerCase();
         if (
-          htmlText.includes("ap/signin") ||
-          htmlText.includes("signin.amazon")
+          finalUrl.includes("/signin") ||
+          finalUrl.includes("/login") ||
+          finalUrl.includes("/register") ||
+          finalUrl.includes("ap/signin")
         ) {
           throw new Error(
             "Session expired or authentication failed during fetch",
           );
         }
+
+        const htmlText = await response.text();
 
         // Parse items and summary from HTML
         const items = parseOrderDetailsHtml(htmlText, tx.orderId);
@@ -179,20 +184,55 @@ async function runItemizationInContentScript() {
           `[Worker ${workerId}] Successfully itemized Order ${tx.orderId} (${items.length} items parsed)`,
         );
 
-        // Update progress state
-        chrome.runtime.sendMessage({
-          action: "SCRAPE_STATUS",
-          payload: {
-            status: "ITEMIZING",
-            message: `Analyzing details for order ${currentIdx}/${totalCount}...`,
-            progress,
-            currentFetchIndex: currentIdx,
-            totalFetchCount: totalCount,
-          },
-        });
+        // Update progress state (only if still active — another worker may have
+        // detected auth failure and stopped the scrape)
+        if (scrapingState.active) {
+          chrome.runtime.sendMessage({
+            action: "SCRAPE_STATUS",
+            payload: {
+              status: "ITEMIZING",
+              message: `Analyzing details for order ${completedCount}/${totalCount}...`,
+              progress: Math.round((completedCount / totalCount) * 100),
+              currentFetchIndex: completedCount,
+              totalFetchCount: totalCount,
+              cachedCount: scrapingState.itemizationProgress.cachedCount || 0,
+            },
+          });
+        }
       } catch (err) {
         console.error(`Failed fetching details for Order ${tx.orderId}:`, err);
-        logToHUD(`Failed to fetch Order ${tx.orderId}: ${err.message}`);
+        const isAuthError =
+          err.message &&
+          (err.message.includes("Session expired") ||
+            err.message.includes("authentication failed"));
+        logToHUD(
+          `Failed to fetch Order ${tx.orderId}: ${err.message}`,
+          isAuthError,
+        );
+
+        if (isAuthError) {
+          scrapingState.active = false;
+          queue.length = 0; // Drain queue so other workers exit immediately
+          clearSessionState();
+          logToHUD(
+            "Amazon session expired. Analysis cannot continue without re-authentication.",
+            true,
+          );
+          updateHUDStatus(
+            "ERROR",
+            scrapingState.pageCount,
+            scrapingState.scrapedTransactions.length,
+          );
+          chrome.runtime.sendMessage({
+            action: "SCRAPE_STATUS",
+            payload: {
+              status: "ERROR",
+              message:
+                "Amazon session expired. Please close this tab, log in to Amazon in the opened tab, and start a new analysis.",
+            },
+          });
+          break;
+        }
 
         // Maintain fallback default items structure so dashboard never crashes
         tx.items = [

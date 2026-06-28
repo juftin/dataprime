@@ -157,6 +157,17 @@ function handleBackgroundMessage(request, sender, sendResponse) {
     return true;
   }
 
+  // Content script checks if it's running in the background-managed tab
+  if (request.action === "CHECK_SCRAPE_TAB") {
+    const isScrapeTab =
+      sender.tab &&
+      sender.tab.id === activeScrape.tabId &&
+      (activeScrape.status === "RUNNING" ||
+        activeScrape.status === "ITEMIZING");
+    sendResponse({ isScrapeTab });
+    return true;
+  }
+
   // Intercept the deterministic content script signal handshake
   if (request.action === "CONTENT_SCRIPT_READY") {
     if (
@@ -208,6 +219,27 @@ function handleBackgroundMessage(request, sender, sendResponse) {
 
     // Broadcast progress to popup or open dashboard tabs
     broadcastToAll("SCRAPE_STATE_CHANGED", activeScrape);
+
+    // Detect auth expiration during itemization and open a login tab
+    if (
+      payload.status === "ERROR" &&
+      payload.message &&
+      payload.message.includes("session expired")
+    ) {
+      console.log(
+        "DataPrime: Auth expired during itemization. Opening login tab...",
+      );
+      chrome.tabs.create({
+        url: "https://www.amazon.com/cpe/yourpayments/transactions",
+        active: true,
+      });
+      if (activeScrape.tabId) {
+        chrome.tabs.remove(activeScrape.tabId, () => {
+          chrome.runtime.lastError;
+        });
+        activeScrape.tabId = null;
+      }
+    }
     return true;
   }
 

@@ -105,32 +105,54 @@ function handleStartScrape(request, sendResponse) {
   });
 }
 
-// On startup, check if we have a saved active scraping session
+// On startup, check if we have a saved active scraping session.
+// Only resume if the background confirms this is its managed tab.
 if (typeof chrome !== "undefined" && chrome.storage) {
   chrome.storage.local.get("activeScrapeSession", (data) => {
     isStorageChecked = true;
     if (data && data.activeScrapeSession && data.activeScrapeSession.active) {
-      console.log("Resuming active scraping session from storage...");
-      scrapingState = data.activeScrapeSession;
+      // Ask background if this tab is the managed scrape tab before resuming.
+      // This prevents hijacking an unrelated Amazon tab the user has open.
+      chrome.runtime.sendMessage(
+        { action: "CHECK_SCRAPE_TAB" },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            isStorageChecked = true;
+            return;
+          }
+          if (response && response.isScrapeTab) {
+            console.log("Resuming active scraping session from storage...");
+            scrapingState = data.activeScrapeSession;
 
-      // Render feedback loop HUD
-      ensureHUD();
-      updateHUDStatus(
-        "RUNNING",
-        scrapingState.pageCount,
-        scrapingState.scrapedTransactions.length,
+            ensureHUD();
+            updateHUDStatus(
+              "RUNNING",
+              scrapingState.pageCount,
+              scrapingState.scrapedTransactions.length,
+            );
+            logToHUD("Resuming active scraping session from storage...");
+
+            if (pendingStartRequest) {
+              pendingStartRequest.sendResponse({ status: "ALREADY_RUNNING" });
+              pendingStartRequest = null;
+            }
+
+            startScrapingLoop();
+          } else {
+            // Not our managed tab — clear the stale session from storage
+            console.log("DataPrime: Not the managed scrape tab, clearing stale session.");
+            chrome.storage.local.remove("activeScrapeSession");
+            if (pendingStartRequest) {
+              handleStartScrape(
+                pendingStartRequest.request,
+                pendingStartRequest.sendResponse,
+              );
+              pendingStartRequest = null;
+            }
+          }
+        },
       );
-      logToHUD("Resuming active scraping session from storage...");
-
-      // Discard any pending start requests since we are already resuming
-      if (pendingStartRequest) {
-        pendingStartRequest.sendResponse({ status: "ALREADY_RUNNING" });
-        pendingStartRequest = null;
-      }
-
-      startScrapingLoop();
     } else {
-      // If we received a START_SCRAPE message while we were reading storage, process it now!
       if (pendingStartRequest) {
         handleStartScrape(
           pendingStartRequest.request,
@@ -270,20 +292,54 @@ async function startScrapingLoop() {
 
     // Verify we are starting from the first page of transactions
     if (scrapingState.pageCount === 0) {
-      const prevButton = findPreviousButton();
+      let prevButton = findPreviousButton();
       if (prevButton) {
         logToHUD(
-          "Verification failed: Scraping must start from Page 1 (Previous Page is clickable).",
+          "Not on page 1. Navigating back to the first page of transactions...",
         );
         console.log(
-          "DataPrime Scraper: Previous Page button is active. Blocking start to ensure page 1 integrity.",
+          "DataPrime Scraper: Previous Page button is active. Navigating back to page 1.",
         );
-        notifyError(
-          "Analysis must start from the first page of your Amazon transactions list. Please navigate to Page 1 and try again.",
-        );
-        scrapingState.active = false;
-        await clearSessionState();
-        return;
+
+        // Click Previous until we reach page 1 (max 200 iterations to prevent infinite loop)
+        const MAX_BACK_NAV = 200;
+        for (let backNav = 0; backNav < MAX_BACK_NAV; backNav++) {
+          if (!scrapingState.active) return;
+
+          const firstElBefore = document.querySelector(
+            ".apx-transactions-line-item-component-container",
+          );
+          const firstTextBefore = firstElBefore
+            ? (firstElBefore.innerText || "").trim()
+            : null;
+
+          prevButton.click();
+          logToHUD(
+            `Clicked Previous Page (${backNav + 1}/${MAX_BACK_NAV})...`,
+          );
+
+          await pollForAjaxUpdate(firstTextBefore);
+          await sleep(800);
+
+          prevButton = findPreviousButton();
+          if (!prevButton) {
+            logToHUD("Reached page 1. Beginning analysis.");
+            break;
+          }
+
+          if (backNav === MAX_BACK_NAV - 1) {
+            logToHUD(
+              "Failed to reach page 1 after maximum navigation attempts.",
+              true,
+            );
+            notifyError(
+              "Could not navigate to the first page of your transactions. Please manually navigate to Page 1 and try again.",
+            );
+            scrapingState.active = false;
+            await clearSessionState();
+            return;
+          }
+        }
       }
     }
 

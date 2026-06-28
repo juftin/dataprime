@@ -653,24 +653,11 @@ input:checked + .slider:before {
 .progress-spinner {
   width: 30px;
   height: 30px;
-  background: var(--primary-gradient);
-  clip-path: polygon(
-    50% 0%,
-    56% 39.6%,
-    93.3% 25%,
-    62% 50%,
-    93.3% 75%,
-    56% 60.4%,
-    50% 100%,
-    44% 60.4%,
-    6.7% 75%,
-    38% 50%,
-    6.7% 25%,
-    44% 39.6%
-  );
-  animation: spin 5s linear infinite;
+  border-radius: 50%;
+  background: conic-gradient(#8b5cf6 0deg 180deg, #ec4899 180deg 360deg);
+  animation: spin 1.2s linear infinite;
   display: inline-block;
-  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.6));
+  filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
 }
 
 @keyframes spin {
