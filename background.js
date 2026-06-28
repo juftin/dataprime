@@ -179,7 +179,7 @@ function handleBackgroundMessage(request, sender, sendResponse) {
           endDate: activeScrape.endDate,
           fetchItemized: activeScrape.fetchItemized,
         },
-        (res) => {
+        (_res) => {
           if (chrome.runtime.lastError) {
             console.error(
               "Failed to start scraper in background tab:",
@@ -230,11 +230,11 @@ function handleBackgroundMessage(request, sender, sendResponse) {
         { action: "STOP_SCRAPE" },
         () => {
           // Suppress any error if the tab is already dying
-          const err = chrome.runtime.lastError;
+          chrome.runtime.lastError;
         },
       );
       chrome.tabs.remove(activeScrape.tabId, () => {
-        const err = chrome.runtime.lastError;
+        chrome.runtime.lastError;
       });
       activeScrape.tabId = null;
     }
@@ -285,7 +285,7 @@ async function finalizeScraping() {
   // Cleanup: close the inactive background scraper tab cleanly!
   if (activeScrape.tabId) {
     chrome.tabs.remove(activeScrape.tabId, () => {
-      const err = chrome.runtime.lastError;
+      chrome.runtime.lastError;
     });
     activeScrape.tabId = null;
   }
@@ -341,6 +341,6 @@ function broadcastToAll(action, payload) {
   }
   chrome.runtime.sendMessage({ action, payload }, () => {
     // Suppress the "receiving end does not exist" error when popup is closed
-    const lastError = chrome.runtime.lastError;
+    chrome.runtime.lastError;
   });
 }

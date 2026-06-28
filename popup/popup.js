@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const customDatesRow = document.getElementById("customDatesRow");
   const startDateInput = document.getElementById("startDate");
   const endDateInput = document.getElementById("endDate");
-  const fetchItemizedCheck = document.getElementById("fetchItemized");
 
   const btnStartScrape = document.getElementById("btnStartScrape");
   const btnCancelScrape = document.getElementById("btnCancelScrape");
@@ -31,6 +30,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const progressPageCount = document.getElementById("progressPageCount");
   const progressCountLabel = document.getElementById("progressCountLabel");
   const progressPageLabel = document.getElementById("progressPageLabel");
+  const progressCacheBubble = document.getElementById("progressCacheBubble");
+  const progressCacheCount = document.getElementById("progressCacheCount");
 
   const sumTotalSpend = document.getElementById("sumTotalSpend");
   const sumTxCount = document.getElementById("sumTxCount");
@@ -98,7 +99,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       endDate = endDateInput.value;
     }
 
-    const fetchItemized = fetchItemizedCheck.checked;
+    const fetchItemized = true;
 
     statusMessage.innerText = "Opening background Amazon tab...";
     switchPanel(panelProgress);
@@ -111,7 +112,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         endDate,
         fetchItemized,
       },
-      (res) => {
+      (_res) => {
         if (chrome.runtime.lastError) {
           alert(
             "Failed to start background analysis: " +
@@ -133,8 +134,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 5. Open Dashboard Button
   const openDashboardHandler = () => {
-    chrome.tabs.create({
-      url: chrome.runtime.getURL("dashboard/results.html"),
+    if (window.self !== window.top) {
+      window.parent.postMessage({ action: "CLOSE_ANALYZE_MODAL" }, "*");
+      return;
+    }
+    const url = chrome.runtime.getURL("dashboard/results.html");
+    chrome.tabs.query({ url: url }, (tabs) => {
+      if (tabs && tabs.length > 0) {
+        chrome.tabs.update(tabs[0].id, { active: true }, () => {
+          chrome.runtime.lastError;
+        });
+        chrome.windows.update(tabs[0].windowId, { focused: true }, () => {
+          chrome.runtime.lastError;
+        });
+      } else {
+        chrome.tabs.create({ url: url });
+      }
     });
   };
   btnOpenDashboard.addEventListener("click", openDashboardHandler);
@@ -184,7 +199,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // First cancel any active scraping running in the background cleanly!
       chrome.runtime.sendMessage({ action: "STOP_SCRAPE" }, () => {
         // Suppress any runtime errors if background was inactive
-        const err = chrome.runtime.lastError;
+        chrome.runtime.lastError;
 
         chrome.storage.local.clear(() => {
           const originalText = btnClearSaved.innerText;
@@ -220,6 +235,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       statusMessage.innerText = msg || "Scraping Amazon list page...";
       progressCount.innerText = list.length;
       progressPageCount.innerText = state.page || 1;
+      if (progressCacheBubble) progressCacheBubble.style.display = "none";
 
       // Calculate page scraping progress based on date range coverage
       let pageProgress = 0;
@@ -254,6 +270,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       progressPageLabel.innerText = "Transactions";
       progressCount.innerText = `${state.currentFetchIndex}`;
       progressPageCount.innerText = `${state.totalFetchCount}`;
+      if (progressCacheBubble) progressCacheBubble.style.display = "flex";
+      if (progressCacheCount)
+        progressCacheCount.innerText = `${state.cachedCount || 0}`;
 
       // Update percentage circles
       setOuterProgress(100);
