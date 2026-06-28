@@ -39,9 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // DOM Elements - Header & Stats
   const syncTimeText = document.getElementById("syncTime");
-  const btnRefreshData = document.getElementById("btnRefreshData");
   const btnAnalyzeMore = document.getElementById("btnAnalyzeMore");
-  const syncIcon = document.getElementById("syncIcon");
 
   const kpiTotalSpent = document.getElementById("kpiTotalSpent");
   const kpiSpentSub = document.getElementById("kpiSpentSub");
@@ -290,17 +288,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
     }
-  });
-
-  btnRefreshData.addEventListener("click", () => {
-    btnRefreshData.classList.add("spinning");
-    syncIcon.style.animation = "spin 1s linear infinite";
-    loadData().finally(() => {
-      setTimeout(() => {
-        btnRefreshData.classList.remove("spinning");
-        syncIcon.style.animation = "";
-      }, 800);
-    });
   });
 
   function openAnalyzeModal() {
