@@ -11,7 +11,9 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="results.css" />
-    <script src="results.js" defer></script>
+    <link rel="icon" type="image/svg+xml" href="../icons/logo.svg" />
+    <link rel="alternate icon" type="image/png" href="../icons/icon16.png" />
+    <script src="results.js" type="module"></script>
   </head>
   <body>
     <div class="dashboard-wrapper">
@@ -108,11 +110,6 @@
                 <span class="check-box"></span>
                 <span>Refunds & Adjustments</span>
               </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="chkShowItemizedOnly" />
-                <span class="check-box"></span>
-                <span>Only Itemized Orders</span>
-              </label>
             </div>
           </div>
         </nav>
@@ -175,7 +172,25 @@
             <h2>Purchase Dashboard</h2>
             <p id="syncTime">Database: Syncing status...</p>
           </div>
-          <div class="header-actions">
+          <div class="header-actions" style="display: flex; gap: 10px">
+            <button
+              id="btnAnalyzeMore"
+              class="btn btn-primary btn-glow"
+              style="padding: 8px 16px"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                style="margin-right: 4px"
+              >
+                <path d="M12 5v14M5 12h14"></path>
+              </svg>
+              <span>Analyze More Transactions</span>
+            </button>
             <button id="btnRefreshData" class="btn btn-secondary refresh-btn">
               <svg
                 width="14"
@@ -298,13 +313,37 @@
               <h3>Spending Trends</h3>
               <p>Aggregated visual overview of purchases over time</p>
             </div>
-            <div class="chart-controls">
-              <button class="toggle-chart-btn active" id="btnMonthlyTrend">
-                Monthly Overview
-              </button>
-              <button class="toggle-chart-btn" id="btnCumulativeSpend">
-                Cumulative Sum
-              </button>
+            <div style="display: flex; align-items: center; gap: 14px">
+              <label
+                class="checkbox-label"
+                id="lblIncludeReturns"
+                style="
+                  display: none;
+                  align-items: center;
+                  gap: 6px;
+                  cursor: pointer;
+                  user-select: none;
+                "
+              >
+                <input type="checkbox" id="chkIncludeReturns" />
+                <span class="check-box"></span>
+                <span
+                  style="
+                    font-size: 11px;
+                    font-weight: 500;
+                    color: var(--text-muted);
+                  "
+                  >Include Returns</span
+                >
+              </label>
+              <div class="chart-controls">
+                <button class="toggle-chart-btn active" id="btnMonthlyTrend">
+                  Monthly Overview
+                </button>
+                <button class="toggle-chart-btn" id="btnCumulativeSpend">
+                  Cumulative Sum
+                </button>
+              </div>
             </div>
           </div>
           <div class="chart-container">
@@ -330,28 +369,76 @@
                 >Showing 0 matching records</span
               >
             </div>
-            <div class="table-sorting">
-              <label for="sortBySelect">Sort by</label>
-              <select id="sortBySelect">
-                <option value="date-desc">Date (Newest first)</option>
-                <option value="date-asc">Date (Oldest first)</option>
-                <option value="amount-desc">Amount (Highest first)</option>
-                <option value="amount-asc">Amount (Lowest first)</option>
-              </select>
+            <div class="table-controls-wrap">
+              <div class="registry-controls">
+                <button class="toggle-registry-btn active" id="btnTableView">
+                  Table View
+                </button>
+                <button class="toggle-registry-btn" id="btnJsonView">
+                  JSON View
+                </button>
+              </div>
+              <div class="table-sorting">
+                <label for="sortBySelect">Sort by</label>
+                <select id="sortBySelect">
+                  <option value="date-desc">Date (Newest first)</option>
+                  <option value="date-asc">Date (Oldest first)</option>
+                  <option value="amount-desc">Amount (Highest first)</option>
+                  <option value="amount-asc">Amount (Lowest first)</option>
+                  <option value="orderId-asc">Order ID (A-Z)</option>
+                  <option value="orderId-desc">Order ID (Z-A)</option>
+                  <option value="description-asc">Description (A-Z)</option>
+                  <option value="description-desc">Description (Z-A)</option>
+                  <option value="items-desc">Items (Most first)</option>
+                  <option value="items-asc">Items (Least first)</option>
+                  <option value="paymentMethod-asc">Card / Method (A-Z)</option>
+                  <option value="paymentMethod-desc">
+                    Card / Method (Z-A)
+                  </option>
+                  <option value="shippingAndTax-desc">
+                    Shipping & Tax (Highest first)
+                  </option>
+                  <option value="shippingAndTax-asc">
+                    Shipping & Tax (Lowest first)
+                  </option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <div class="table-responsive">
+          <div class="table-responsive" id="tableViewContainer">
             <table class="dashboard-table">
               <thead>
                 <tr>
-                  <th width="12%">Date</th>
-                  <th width="18%">Order ID</th>
-                  <th width="30%">Description</th>
-                  <th width="8%" class="text-center">Items</th>
-                  <th width="12%">Card / Method</th>
-                  <th width="10%" class="text-right">Shipping & Tax</th>
-                  <th width="10%" class="text-right">Amount</th>
+                  <th width="12%" class="sortable" data-sort="date">
+                    Date <span class="sort-icon"></span>
+                  </th>
+                  <th width="18%" class="sortable" data-sort="orderId">
+                    Order ID <span class="sort-icon"></span>
+                  </th>
+                  <th width="30%" class="sortable" data-sort="description">
+                    Description <span class="sort-icon"></span>
+                  </th>
+                  <th width="8%" class="sortable text-center" data-sort="items">
+                    Items <span class="sort-icon"></span>
+                  </th>
+                  <th width="12%" class="sortable" data-sort="paymentMethod">
+                    Card / Method <span class="sort-icon"></span>
+                  </th>
+                  <th
+                    width="10%"
+                    class="sortable text-right"
+                    data-sort="shippingAndTax"
+                  >
+                    Shipping & Tax <span class="sort-icon"></span>
+                  </th>
+                  <th
+                    width="10%"
+                    class="sortable text-right"
+                    data-sort="amount"
+                  >
+                    Amount <span class="sort-icon"></span>
+                  </th>
                 </tr>
               </thead>
               <tbody id="transactionsTableBody">
@@ -390,8 +477,49 @@
               </tbody>
             </table>
           </div>
+
+          <div
+            class="json-responsive"
+            id="jsonViewContainer"
+            style="display: none"
+          >
+            <div class="json-header-bar">
+              <span class="json-header-title"
+                >Raw Filtered Transactions JSON</span
+              >
+              <button class="btn-copy-json" id="btnCopyJson">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path
+                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                  ></path>
+                </svg>
+                <span>Copy JSON</span>
+              </button>
+            </div>
+            <pre class="json-viewer" id="jsonViewerBlock"></pre>
+          </div>
         </section>
       </main>
+    </div>
+
+    <!-- Analyze More Modal Overlay -->
+    <div id="analyzeModal" class="modal-overlay">
+      <div class="modal-content glass-panel">
+        <button id="btnCloseModal" class="modal-close-btn">&times;</button>
+        <iframe
+          id="analyzeIframe"
+          src="../popup/popup.html"
+          class="modal-iframe"
+        ></iframe>
+      </div>
     </div>
   </body>
 </html>

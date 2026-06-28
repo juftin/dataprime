@@ -11,8 +11,15 @@ The project maintains a lean, dependency-free file structure that operates purel
 ```
 dataprime/
 ├── manifest.json          # Manifest V3 configuration (permissions, worker, and resources)
-├── content.js             # Content script: Scrapes payments DOM, handles receipt fetching
-├── background.js          # Service worker: Orchestrates state, broadcasts data, seeds mock logs
+├── content.js             # Content script orchestrator & Node/Bun testing entry point
+├── content-scripts/       # Split content script files (loaded sequentially in manifest)
+│   ├── utils.js           # Shared utilities & scrapingState
+│   ├── hud.js             # Real-time progress HUD & title updater
+│   ├── parser.js          # Transaction list extraction & pagination traversal
+│   └── itemizer.js        # Same-site receipt itemization worker pool
+├── background.js          # Service worker main state coordinator
+├── background/            # Split background worker modules
+│   └── demo-data.js       # High-fidelity synthetic spending logs generator
 ├── popup/
 │   ├── popup.html         # Custom popup setup and UI triggers
 │   ├── popup.css          # Premium glassmorphic interface rules
@@ -20,9 +27,11 @@ dataprime/
 ├── dashboard/
 │   ├── results.html       # Analytics dashboard UI
 │   ├── results.css        # Premium dark-mode analytics visual style
-│   └── results.js         # Coordinates dashboard charts, data exports, and KPI stats
+│   ├── results.js         # Main dashboard page views & filters controller
+│   ├── charts.js          # Programmatic SVG chart rendering module
+│   └── exporters.js       # CSV/JSON file downloaders & formats formatter
 ├── tests/
-│   └── parser.test.js     # Native Bun unit test suite (21 distinct test blocks)
+│   └── parser.test.js     # Native Bun unit test suite (23 distinct test blocks)
 └── Taskfile.yaml          # Orchestration tasks (formatting, checking, and packaging)
 ```
 

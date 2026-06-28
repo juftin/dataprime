@@ -2,11 +2,25 @@
  * DataPrime Purchase Analytics Dashboard Controller
  */
 
+import {
+  formatCurrency,
+  escapeHtml,
+  debounce,
+  getRefundItems,
+  exportToCSV as exportToCSVEngine,
+  exportToJSON as exportToJSONEngine,
+} from "./exporters.js";
+
+import { renderChart as renderChartEngine } from "./charts.js";
+
 document.addEventListener("DOMContentLoaded", () => {
   // Local state variables
   let allTransactions = [];
   let filteredTransactions = [];
   let chartMode = "monthly"; // monthly or cumulative
+  let registryMode = "table"; // table or json
+  let sortField = "date"; // active sorting column field
+  let sortDir = "desc"; // sort order direction (asc or desc)
 
   // DOM Elements - Sidebar Filters
   const searchInput = document.getElementById("searchInput");
@@ -16,7 +30,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const filterMaxPrice = document.getElementById("filterMaxPrice");
   const chkShowOrders = document.getElementById("chkShowOrders");
   const chkShowRefunds = document.getElementById("chkShowRefunds");
-  const chkShowItemizedOnly = document.getElementById("chkShowItemizedOnly");
 
   const btnExportCSV = document.getElementById("btnExportCSV");
   const btnExportJSON = document.getElementById("btnExportJSON");
@@ -27,6 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // DOM Elements - Header & Stats
   const syncTimeText = document.getElementById("syncTime");
   const btnRefreshData = document.getElementById("btnRefreshData");
+  const btnAnalyzeMore = document.getElementById("btnAnalyzeMore");
   const syncIcon = document.getElementById("syncIcon");
 
   const kpiTotalSpent = document.getElementById("kpiTotalSpent");
@@ -43,12 +57,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnCumulativeSpend = document.getElementById("btnCumulativeSpend");
   const spendingChart = document.getElementById("spendingChart");
   const chartTooltip = document.getElementById("chartTooltip");
+  const chkIncludeReturns = document.getElementById("chkIncludeReturns");
+  const lblIncludeReturns = document.getElementById("lblIncludeReturns");
+
+  // Modal elements
+  const analyzeModal = document.getElementById("analyzeModal");
+  const btnCloseModal = document.getElementById("btnCloseModal");
+  const analyzeIframe = document.getElementById("analyzeIframe");
 
   const resultsCount = document.getElementById("resultsCount");
   const sortBySelect = document.getElementById("sortBySelect");
   const transactionsTableBody = document.getElementById(
     "transactionsTableBody",
   );
+
+  // View toggle selectors
+  const btnTableView = document.getElementById("btnTableView");
+  const btnJsonView = document.getElementById("btnJsonView");
+  const tableViewContainer = document.getElementById("tableViewContainer");
+  const jsonViewContainer = document.getElementById("jsonViewContainer");
+  const jsonViewerBlock = document.getElementById("jsonViewerBlock");
+  const btnCopyJson = document.getElementById("btnCopyJson");
 
   // 1. Initialize Dashboard
   loadData();
@@ -60,6 +89,16 @@ document.addEventListener("DOMContentLoaded", () => {
       if (payload.status === "COMPLETED" || payload.status === "ITEMIZING") {
         loadData();
       }
+      if (payload.status === "COMPLETED") {
+        closeAnalyzeModal();
+      }
+    }
+  });
+
+  // Listen to window messages from the iframe (e.g. closing the modal)
+  window.addEventListener("message", (event) => {
+    if (event.data && event.data.action === "CLOSE_ANALYZE_MODAL") {
+      closeAnalyzeModal();
     }
   });
 
@@ -71,11 +110,17 @@ document.addEventListener("DOMContentLoaded", () => {
     filterMaxPrice,
     chkShowOrders,
     chkShowRefunds,
-    chkShowItemizedOnly,
   ].forEach((el) => el.addEventListener("change", updateView));
 
   searchInput.addEventListener("input", debounce(updateView, 250));
-  sortBySelect.addEventListener("change", updateView);
+  sortBySelect.addEventListener("change", () => {
+    const parts = sortBySelect.value.split("-");
+    if (parts.length === 2) {
+      sortField = parts[0];
+      sortDir = parts[1];
+    }
+    updateView();
+  });
   window.addEventListener("resize", debounce(renderChart, 150));
 
   btnResetFilters.addEventListener("click", () => {
@@ -86,7 +131,11 @@ document.addEventListener("DOMContentLoaded", () => {
     filterMaxPrice.value = "";
     chkShowOrders.checked = true;
     chkShowRefunds.checked = true;
-    chkShowItemizedOnly.checked = false;
+    if (chkIncludeReturns) chkIncludeReturns.checked = false;
+    if (lblIncludeReturns) lblIncludeReturns.style.display = "none";
+    chartMode = "monthly";
+    btnMonthlyTrend.classList.add("active");
+    btnCumulativeSpend.classList.remove("active");
     updateView();
   });
 
@@ -95,6 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnMonthlyTrend.classList.add("active");
     btnCumulativeSpend.classList.remove("active");
     chartMode = "monthly";
+    if (lblIncludeReturns) lblIncludeReturns.style.display = "none";
     renderChart();
   });
 
@@ -102,7 +152,116 @@ document.addEventListener("DOMContentLoaded", () => {
     btnCumulativeSpend.classList.add("active");
     btnMonthlyTrend.classList.remove("active");
     chartMode = "cumulative";
+    if (lblIncludeReturns) lblIncludeReturns.style.display = "flex";
     renderChart();
+  });
+
+  if (chkIncludeReturns) {
+    chkIncludeReturns.addEventListener("change", renderChart);
+  }
+
+  // 3b. Registry View Toggles
+  btnTableView.addEventListener("click", () => {
+    btnTableView.classList.add("active");
+    btnJsonView.classList.remove("active");
+    registryMode = "table";
+    tableViewContainer.style.display = "block";
+    jsonViewContainer.style.display = "none";
+    renderTable();
+  });
+
+  btnJsonView.addEventListener("click", () => {
+    btnJsonView.classList.add("active");
+    btnTableView.classList.remove("active");
+    registryMode = "json";
+    tableViewContainer.style.display = "none";
+    jsonViewContainer.style.display = "block";
+    renderJsonView();
+  });
+
+  btnCopyJson.addEventListener("click", () => {
+    const enhanced = filteredTransactions.map((tx) => {
+      const isRefund = tx.amount < 0;
+      let displayItems = tx.items || [];
+
+      if (isRefund && displayItems.length > 0) {
+        displayItems = getRefundItems(
+          displayItems,
+          tx.summary?.itemsRefund ?? tx.amount,
+        ).map((item) => ({
+          ...item,
+          price: -Math.abs(item.price),
+        }));
+      }
+
+      let shippingAndTax = 0;
+      if (displayItems.length > 0) {
+        if (tx.summary) {
+          if (isRefund) {
+            const diff =
+              (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0);
+            shippingAndTax = -Math.abs(diff);
+          } else {
+            const diff =
+              (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0);
+            shippingAndTax = Math.abs(diff);
+          }
+        } else {
+          const subtotalSum = displayItems.reduce(
+            (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
+            0,
+          );
+          const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
+          shippingAndTax = isRefund ? -Math.abs(diff) : Math.abs(diff);
+        }
+        shippingAndTax = parseFloat(shippingAndTax.toFixed(2));
+      }
+
+      const updatedTx = {
+        ...tx,
+        shippingAndTax,
+      };
+      if (tx.items) {
+        updatedTx.items = displayItems;
+      }
+      return updatedTx;
+    });
+
+    const jsonStr = JSON.stringify(enhanced, null, 2);
+    navigator.clipboard
+      .writeText(jsonStr)
+      .then(() => {
+        const originalText = btnCopyJson.innerHTML;
+        btnCopyJson.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success-emerald)" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span style="color: var(--success-emerald)">Copied!</span>
+      `;
+        btnCopyJson.style.borderColor = "var(--success-emerald)";
+        setTimeout(() => {
+          btnCopyJson.innerHTML = originalText;
+          btnCopyJson.style.borderColor = "";
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy JSON:", err);
+      });
+  });
+
+  // 3c. Registry Table Header Sorting
+  document.querySelectorAll("th.sortable").forEach((th) => {
+    th.addEventListener("click", () => {
+      const field = th.getAttribute("data-sort");
+      if (sortField === field) {
+        sortDir = sortDir === "asc" ? "desc" : "asc";
+      } else {
+        sortField = field;
+        sortDir = "desc";
+      }
+      sortBySelect.value = `${sortField}-${sortDir}`;
+      updateView();
+    });
   });
 
   // 4. Manual Database Actions
@@ -122,8 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ) {
       // First cancel any active scraping running in the background cleanly!
       chrome.runtime.sendMessage({ action: "STOP_SCRAPE" }, () => {
-        // Suppress any runtime errors if background was inactive
-        const err = chrome.runtime.lastError;
+        chrome.runtime.lastError;
 
         chrome.storage.local.clear(() => {
           allTransactions = [];
@@ -145,7 +303,52 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 5. Data Exporters
+  function openAnalyzeModal() {
+    if (analyzeModal) {
+      if (analyzeIframe) {
+        analyzeIframe.src = analyzeIframe.src;
+      }
+      analyzeModal.style.display = "flex";
+      setTimeout(() => {
+        analyzeModal.classList.add("show");
+      }, 10);
+    }
+  }
+
+  function closeAnalyzeModal() {
+    if (analyzeModal) {
+      analyzeModal.classList.remove("show");
+      setTimeout(() => {
+        analyzeModal.style.display = "none";
+      }, 300);
+    }
+  }
+
+  if (btnAnalyzeMore) {
+    btnAnalyzeMore.addEventListener("click", openAnalyzeModal);
+  }
+
+  if (btnCloseModal) {
+    btnCloseModal.addEventListener("click", closeAnalyzeModal);
+  }
+
+  if (analyzeModal) {
+    analyzeModal.addEventListener("click", (e) => {
+      if (e.target === analyzeModal) {
+        closeAnalyzeModal();
+      }
+    });
+  }
+
+  // 5. Data Exporters Wrapper Functions
+  function exportToCSV() {
+    exportToCSVEngine(filteredTransactions);
+  }
+
+  function exportToJSON() {
+    exportToJSONEngine(filteredTransactions);
+  }
+
   btnExportCSV.addEventListener("click", exportToCSV);
   btnExportJSON.addEventListener("click", exportToJSON);
 
@@ -176,7 +379,12 @@ document.addEventListener("DOMContentLoaded", () => {
     applyFilters();
     calculateKPIs();
     renderChart();
-    renderTable();
+    updateHeaderUI();
+    if (registryMode === "table") {
+      renderTable();
+    } else {
+      renderJsonView();
+    }
   }
 
   /**
@@ -197,7 +405,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const showOrders = chkShowOrders.checked;
     const showRefunds = chkShowRefunds.checked;
-    const showItemizedOnly = chkShowItemizedOnly.checked;
 
     filteredTransactions = allTransactions.filter((tx) => {
       // 1. Transaction Category Toggles
@@ -205,11 +412,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (isRefund && !showRefunds) return false;
       if (!isRefund && !showOrders) return false;
 
-      // 2. Only Itemized toggle
-      const hasItems = tx.items && tx.items.length > 0;
-      if (showItemizedOnly && !hasItems) return false;
-
-      // 3. Search box (searches desc, order ID, card name, and itemized product names!)
+      // 3. Search box
       if (searchVal) {
         const matchesDesc = tx.description.toLowerCase().includes(searchVal);
         const matchesId = tx.id.toLowerCase().includes(searchVal);
@@ -237,7 +440,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (endVal && txDate > endVal) return false;
       }
 
-      // 5. Price range (absolute amount value)
+      // 5. Price range
       if (minVal !== null || maxVal !== null) {
         const absAmount = Math.abs(tx.amount);
         if (minVal !== null && absAmount < minVal) return false;
@@ -248,18 +451,57 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Sort operations
-    const sortVal = sortBySelect.value;
     filteredTransactions.sort((a, b) => {
-      if (sortVal === "date-desc") {
-        return new Date(b.date) - new Date(a.date);
-      } else if (sortVal === "date-asc") {
-        return new Date(a.date) - new Date(b.date);
-      } else if (sortVal === "amount-desc") {
-        return Math.abs(b.amount) - Math.abs(a.amount);
-      } else if (sortVal === "amount-asc") {
-        return Math.abs(a.amount) - Math.abs(b.amount);
+      let comparison = 0;
+
+      if (sortField === "date") {
+        comparison = new Date(a.date) - new Date(b.date);
+      } else if (sortField === "amount") {
+        comparison = Math.abs(a.amount) - Math.abs(b.amount);
+      } else if (sortField === "orderId") {
+        comparison = (a.orderId || "").localeCompare(b.orderId || "");
+      } else if (sortField === "description") {
+        comparison = (a.description || "").localeCompare(b.description || "");
+      } else if (sortField === "items") {
+        const countA = a.items
+          ? a.items.reduce((acc, i) => acc + (i.quantity || 1), 0)
+          : 0;
+        const countB = b.items
+          ? b.items.reduce((acc, i) => acc + (i.quantity || 1), 0)
+          : 0;
+        comparison = countA - countB;
+      } else if (sortField === "paymentMethod") {
+        comparison = (a.paymentMethod || "").localeCompare(
+          b.paymentMethod || "",
+        );
+      } else if (sortField === "shippingAndTax") {
+        const getShippingAndTax = (tx) => {
+          const isRefund = tx.amount < 0;
+          const displayItems = tx.items || [];
+          if (displayItems.length === 0) return 0;
+          if (tx.summary) {
+            if (isRefund) {
+              return -Math.abs(
+                (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0),
+              );
+            } else {
+              return Math.abs(
+                (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0),
+              );
+            }
+          } else {
+            const subtotalSum = displayItems.reduce(
+              (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
+              0,
+            );
+            const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
+            return isRefund ? -Math.abs(diff) : Math.abs(diff);
+          }
+        };
+        comparison = getShippingAndTax(a) - getShippingAndTax(b);
       }
-      return 0;
+
+      return sortDir === "asc" ? comparison : -comparison;
     });
 
     resultsCount.innerText = `Showing ${filteredTransactions.length} matching records`;
@@ -281,7 +523,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 1. Total Spending (Separate Purchases vs Refunds)
     let purchasesSum = 0;
     let refundsSum = 0;
     let totalItemsCount = 0;
@@ -298,7 +539,6 @@ document.addEventListener("DOMContentLoaded", () => {
         purchaseAmounts.push(tx.amount);
       }
 
-      // Count itemized quantities
       if (tx.items && tx.items.length > 0) {
         ordersWithItemsCount++;
         tx.items.forEach((item) => {
@@ -311,7 +551,6 @@ document.addEventListener("DOMContentLoaded", () => {
     kpiTotalSpent.innerText = formatCurrency(netSpent);
     kpiSpentSub.innerText = `Spent ${formatCurrency(purchasesSum)} | Refunded ${formatCurrency(refundsSum)}`;
 
-    // 2. Total Items Metrics
     kpiTotalItems.innerText = totalItemsCount;
     const avgItems =
       ordersWithItemsCount > 0
@@ -319,12 +558,10 @@ document.addEventListener("DOMContentLoaded", () => {
         : "0.0";
     kpiItemsSub.innerText = `Across ${ordersWithItemsCount} itemized order listings (Avg ${avgItems}/order)`;
 
-    // 3. Average & Median Order Sizes
     const orderCount = purchaseAmounts.length;
     const avgOrderValue = orderCount > 0 ? purchasesSum / orderCount : 0;
     kpiAvgOrder.innerText = formatCurrency(avgOrderValue);
 
-    // Compute median order size
     let median = 0;
     if (orderCount > 0) {
       purchaseAmounts.sort((a, b) => a - b);
@@ -336,11 +573,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     kpiAvgSub.innerText = `Median order size: ${formatCurrency(median)} (${orderCount} total orders)`;
 
-    // 4. Top Spending Month
     const monthlyGroups = {};
     filteredTransactions.forEach((tx) => {
       const isRefund = tx.amount < 0;
-      if (isRefund) return; // skip refunds in monthly peak calculation
+      if (isRefund) return;
 
       const date = new Date(tx.date);
       const monthKey = date.toLocaleString("default", {
@@ -368,358 +604,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Generates a modern interactive SVG chart programmatically
+   * Local wrapper for rendering chart.
    */
   function renderChart() {
-    spendingChart.innerHTML = ""; // Clear existing
-
-    const chartW = spendingChart.clientWidth || 800;
-    const chartH = spendingChart.clientHeight || 240;
-
-    spendingChart.setAttribute("viewBox", `0 0 ${chartW} ${chartH}`);
-    spendingChart.removeAttribute("preserveAspectRatio");
-
-    if (filteredTransactions.length === 0) {
-      spendingChart.innerHTML = `<text x="${chartW / 2}" y="${chartH / 2}" fill="var(--text-dark)" text-anchor="middle" font-size="13">No transaction data available for the selected filters</text>`;
-      return;
-    }
-
-    // Set SVG gradients inside definitions
-    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    defs.innerHTML = `
-      <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#6366f1" />
-        <stop offset="100%" stop-color="#c084fc" />
-      </linearGradient>
-      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#6366f1" stop-opacity="0.25" />
-        <stop offset="100%" stop-color="#6366f1" stop-opacity="0.0" />
-      </linearGradient>
-      <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.8" />
-        <stop offset="100%" stop-color="#6366f1" stop-opacity="0.3" />
-      </linearGradient>
-    `;
-    spendingChart.appendChild(defs);
-
-    const padding = { top: 20, right: 30, bottom: 30, left: 60 };
-    const plotW = chartW - padding.left - padding.right;
-    const plotH = chartH - padding.top - padding.bottom;
-
-    if (chartMode === "monthly") {
-      // MODE 1: Monthly Grouped Spent (Bar Chart representation)
-      // Group by month
-      const monthlyData = {};
-
-      // Get all unique months in range (sort ascending)
-      const dates = filteredTransactions.map((t) => new Date(t.date));
-      if (dates.length === 0) return;
-      const minDate = new Date(Math.min(...dates));
-      const maxDate = new Date(Math.max(...dates));
-
-      let curr = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
-      const end = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
-
-      // Seed all months in range with 0
-      while (curr <= end) {
-        const key = curr.toLocaleString("default", {
-          month: "short",
-          year: "2-digit",
-        });
-        monthlyData[key] = { label: key, net: 0, purchases: 0, refunds: 0 };
-        curr.setMonth(curr.getMonth() + 1);
-      }
-
-      // Populate monthly spent
-      filteredTransactions.forEach((tx) => {
-        const date = new Date(tx.date);
-        const key = date.toLocaleString("default", {
-          month: "short",
-          year: "2-digit",
-        });
-
-        if (monthlyData[key]) {
-          if (tx.amount < 0) {
-            monthlyData[key].refunds += Math.abs(tx.amount);
-            monthlyData[key].net -= Math.abs(tx.amount);
-          } else {
-            monthlyData[key].purchases += tx.amount;
-            monthlyData[key].net += tx.amount;
-          }
-        }
-      });
-
-      const dataArray = Object.values(monthlyData);
-
-      // If we only have 1 month, let's keep it clean
-      if (dataArray.length === 0) return;
-
-      // Find max spending for scale
-      const maxSpent = Math.max(
-        ...dataArray.map((d) => Math.max(d.purchases, Math.abs(d.net))),
-        50,
-      );
-
-      // Draw Grid & Y-Axis
-      drawGridLines(spendingChart, padding, plotW, plotH, maxSpent);
-
-      // Draw Bars
-      const barCount = dataArray.length;
-      const barW = Math.min(48, (plotW / barCount) * 0.6);
-      const spacing = plotW / barCount;
-
-      dataArray.forEach((d, idx) => {
-        const x = padding.left + idx * spacing + (spacing - barW) / 2;
-
-        // Use purchases for display bar height, net for hover details
-        const barVal = Math.max(0, d.purchases);
-        const barHeight = (barVal / maxSpent) * plotH;
-        const y = padding.top + plotH - barHeight;
-
-        // Render rounded bar (using SVG path or rect)
-        const bar = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "path",
-        );
-        const rx = 4; // rounded corner radius
-        const pathString = `
-          M ${x},${y + barHeight}
-          L ${x},${y + rx}
-          Q ${x},${y} ${x + rx},${y}
-          L ${x + barW - rx},${y}
-          Q ${x + barW},${y} ${x + barW},${y + rx}
-          L ${x + barW},${y + barHeight}
-          Z
-        `;
-        bar.setAttribute("d", pathString);
-        bar.setAttribute("class", "chart-bar");
-
-        // Show tooltip on hover
-        bar.addEventListener("mousemove", (e) => {
-          showTooltip(
-            e,
-            `
-            <div class="date">${d.label} Spending Details</div>
-            <div class="val">Purchased: ${formatCurrency(d.purchases)}</div>
-            <div class="val" style="color: var(--success-emerald)">Refunded: ${formatCurrency(d.refunds)}</div>
-            <div class="val" style="border-top:1px solid rgba(255,255,255,0.08);margin-top:4px;padding-top:4px;">Net Total: ${formatCurrency(d.net)}</div>
-          `,
-          );
-        });
-
-        bar.addEventListener("mouseleave", hideTooltip);
-        spendingChart.appendChild(bar);
-
-        // Draw X Axis labels
-        drawLabel(
-          spendingChart,
-          d.label,
-          x + barW / 2,
-          padding.top + plotH + 16,
-          "middle",
-        );
-      });
-    } else {
-      // MODE 2: Cumulative Sum (Line Chart representation)
-      // Sort oldest first for running total calculation
-      const cumulativeData = [...filteredTransactions]
-        .filter((t) => t.amount > 0) // chart cumulative purchases
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      if (cumulativeData.length === 0) return;
-
-      let runningTotal = 0;
-      const points = cumulativeData.map((tx) => {
-        runningTotal += tx.amount;
-        return {
-          date: tx.date,
-          orderId: tx.id,
-          amount: tx.amount,
-          cumulative: runningTotal,
-        };
-      });
-
-      const maxTotal = runningTotal || 100;
-
-      // Draw Grid & Y-Axis
-      drawGridLines(spendingChart, padding, plotW, plotH, maxTotal);
-
-      // Map coordinates
-      const count = points.length;
-      const coords = points.map((p, idx) => {
-        const x = padding.left + (idx / (count - 1 || 1)) * plotW;
-        const y = padding.top + plotH - (p.cumulative / maxTotal) * plotH;
-        return { x, y, ...p };
-      });
-
-      // Construct Smooth SVG Path
-      if (coords.length > 0) {
-        let lineD = `M ${coords[0].x},${coords[0].y}`;
-        let areaD = `M ${coords[0].x},${padding.top + plotH} L ${coords[0].x},${coords[0].y}`;
-
-        for (let i = 1; i < coords.length; i++) {
-          // Linear line matching standard progression
-          lineD += ` L ${coords[i].x},${coords[i].y}`;
-          areaD += ` L ${coords[i].x},${coords[i].y}`;
-        }
-
-        areaD += ` L ${coords[coords.length - 1].x},${padding.top + plotH} Z`;
-
-        // Render Area Fill
-        const areaPath = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "path",
-        );
-        areaPath.setAttribute("d", areaD);
-        areaPath.setAttribute("class", "chart-area");
-        spendingChart.appendChild(areaPath);
-
-        // Render Line Stroke
-        const linePath = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "path",
-        );
-        linePath.setAttribute("d", lineD);
-        linePath.setAttribute("class", "chart-line");
-        spendingChart.appendChild(linePath);
-
-        // Render interactive overlay circles (dots) at vertices
-        // If there are too many items, sample them to avoid rendering 500 dots
-        const dotModulo = Math.max(1, Math.floor(coords.length / 50));
-
-        coords.forEach((c, idx) => {
-          if (idx % dotModulo !== 0 && idx !== coords.length - 1) return;
-
-          const dot = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "circle",
-          );
-          dot.setAttribute("cx", c.x);
-          dot.setAttribute("cy", c.y);
-          dot.setAttribute("r", 4);
-          dot.setAttribute("class", "chart-point");
-
-          dot.addEventListener("mousemove", (e) => {
-            showTooltip(
-              e,
-              `
-              <div class="date">${new Date(c.date).toLocaleDateString()}</div>
-              <div class="val">Transaction: ${formatCurrency(c.amount)}</div>
-              <div class="val" style="border-top:1px solid rgba(255,255,255,0.08);margin-top:4px;padding-top:4px;">Cumulative Spend: ${formatCurrency(c.cumulative)}</div>
-              <div class="date" style="font-family:monospace;margin-top:2px;">Order ${c.orderId}</div>
-            `,
-            );
-          });
-
-          dot.addEventListener("mouseleave", hideTooltip);
-          spendingChart.appendChild(dot);
-        });
-
-        // Draw start and end date labels on X axis
-        const startDateText = new Date(coords[0].date).toLocaleDateString(
-          "default",
-          { month: "short", day: "numeric", year: "2-digit" },
-        );
-        const endDateText = new Date(
-          coords[coords.length - 1].date,
-        ).toLocaleDateString("default", {
-          month: "short",
-          day: "numeric",
-          year: "2-digit",
-        });
-
-        drawLabel(
-          spendingChart,
-          startDateText,
-          padding.left,
-          padding.top + plotH + 16,
-          "start",
-        );
-        drawLabel(
-          spendingChart,
-          endDateText,
-          padding.left + plotW,
-          padding.top + plotH + 16,
-          "end",
-        );
-      }
-    }
-  }
-
-  function drawGridLines(svg, padding, w, h, maxVal) {
-    const ticks = 4;
-    for (let i = 0; i <= ticks; i++) {
-      const yVal = (i / ticks) * maxVal;
-      const y = padding.top + h - (i / ticks) * h;
-
-      // Dotted horizontal grid line
-      const line = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "line",
-      );
-      line.setAttribute("x1", padding.left);
-      line.setAttribute("y1", y);
-      line.setAttribute("x2", padding.left + w);
-      line.setAttribute("y2", y);
-      line.setAttribute("class", "chart-grid-line");
-      svg.appendChild(line);
-
-      // Y-axis label text
-      drawLabel(
-        svg,
-        formatCurrencyCompact(yVal),
-        padding.left - 10,
-        y + 3,
-        "end",
-      );
-    }
-
-    // Baseline axis line
-    const axis = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    axis.setAttribute("x1", padding.left);
-    axis.setAttribute("y1", padding.top + h);
-    axis.setAttribute("x2", padding.left + w);
-    axis.setAttribute("y2", padding.top + h);
-    axis.setAttribute("class", "chart-axis-line");
-    svg.appendChild(axis);
-  }
-
-  function drawLabel(svg, text, x, y, align = "start") {
-    const el = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    el.setAttribute("x", x);
-    el.setAttribute("y", y);
-    el.setAttribute("class", "chart-axis-text");
-    el.setAttribute(
-      "text-anchor",
-      align === "start" ? "start" : align === "end" ? "end" : "middle",
+    renderChartEngine(
+      spendingChart,
+      chartTooltip,
+      filteredTransactions,
+      chartMode,
+      chkIncludeReturns && chkIncludeReturns.checked,
     );
-    el.textContent = text;
-    svg.appendChild(el);
-  }
-
-  function showTooltip(e, content) {
-    chartTooltip.innerHTML = content;
-    chartTooltip.style.display = "block";
-
-    // Center tooltip above active mouse position
-    const box = spendingChart.getBoundingClientRect();
-    const scrollLeft =
-      window.pageXOffset || document.documentElement.scrollLeft;
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-    const x = e.clientX - box.left - chartTooltip.offsetWidth / 2;
-    const y = e.clientY - box.top - chartTooltip.offsetHeight - 12;
-
-    chartTooltip.style.left = `${x}px`;
-    chartTooltip.style.top = `${y}px`;
-  }
-
-  function handleMouseMoveOnContainer(e) {
-    // Left empty for direct bubble updates
-  }
-
-  function hideTooltip() {
-    chartTooltip.style.display = "none";
   }
 
   /**
@@ -769,7 +663,6 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
 
-      // Calculate shipping and tax for UI column
       let shippingAndTaxVal = 0;
       if (hasItems) {
         if (tx.summary) {
@@ -789,7 +682,6 @@ document.addEventListener("DOMContentLoaded", () => {
         shippingAndTaxVal = parseFloat(shippingAndTaxVal.toFixed(2));
       }
 
-      // Master Row
       const row = document.createElement("tr");
       row.className = "tx-row";
       row.setAttribute("data-id", tx.id);
@@ -812,12 +704,10 @@ document.addEventListener("DOMContentLoaded", () => {
         </td>
       `;
 
-      // Expandable Details Sub-Row
       const detailsRow = document.createElement("tr");
       detailsRow.className = "details-row";
       detailsRow.id = `details-${tx.id}`;
 
-      // Hydrate itemized templates inside drawer
       let itemsListHtml = "";
       let receiptDiff = 0;
 
@@ -931,11 +821,9 @@ document.addEventListener("DOMContentLoaded", () => {
         </td>
       `;
 
-      // Accordion click interactions
       row.addEventListener("click", () => {
         const isCurrentlyExpanded = row.classList.contains("expanded");
 
-        // Collapse all expanded rows in the table (keeps UI extremely tidy)
         document.querySelectorAll(".tx-row.expanded").forEach((r) => {
           r.classList.remove("expanded");
         });
@@ -955,121 +843,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Generates and downloads a CSV export of the currently filtered transactions dataset.
-   * Compiles the data into a CSV string, constructs a Blob, triggers a browser download
-   * using a transient Object URL, and cleans up memory immediately.
+   * Renders the filtered and sorted transactions list as a formatted JSON document.
    */
-  function exportToCSV() {
-    if (filteredTransactions.length === 0) return;
+  function renderJsonView() {
+    if (filteredTransactions.length === 0) {
+      jsonViewerBlock.innerHTML = `<span class="json-null">[]</span>`;
+      return;
+    }
 
-    // Build Headers
-    let csvContent =
-      "Date,Order ID,Description,Card/Payment Method,Amount Paid,Shipping & Tax,Item Title,Item Unit Price,Item Qty,Seller,Item Link\n";
-
-    filteredTransactions.forEach((tx) => {
-      const isRefund = tx.amount < 0;
-      const baseAmt = isRefund ? -Math.abs(tx.amount) : tx.amount;
-
-      const escapedDesc = `"${tx.description.replace(/"/g, '""')}"`;
-      const escapedPm = `"${(tx.paymentMethod || "Amazon Bal").replace(/"/g, '""')}"`;
-
-      let displayItems = tx.items || [];
-      if (isRefund && displayItems.length > 0) {
-        displayItems = getRefundItems(
-          displayItems,
-          tx.summary?.itemsRefund ?? tx.amount,
-        ).map((item) => ({
-          ...item,
-          price: -Math.abs(item.price),
-        }));
-      }
-
-      // Compute shipping & tax for this transaction
-      let shippingAndTax = 0;
-      if (displayItems.length > 0) {
-        if (tx.summary) {
-          if (isRefund) {
-            const diff =
-              (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0);
-            shippingAndTax = -Math.abs(diff);
-          } else {
-            const diff =
-              (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0);
-            shippingAndTax = Math.abs(diff);
-          }
-        } else {
-          const subtotalSum = displayItems.reduce(
-            (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
-            0,
-          );
-          const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
-          shippingAndTax = isRefund ? -Math.abs(diff) : Math.abs(diff);
-        }
-        // Round to 2 decimals
-        shippingAndTax = parseFloat(shippingAndTax.toFixed(2));
-      }
-
-      if (displayItems.length > 0) {
-        displayItems.forEach((item) => {
-          const escapedTitle = `"${item.title.replace(/"/g, '""')}"`;
-          const escapedSeller = `"${(item.seller || "Amazon").replace(/"/g, '""')}"`;
-          const rowData = [
-            tx.date,
-            tx.orderId || "N/A",
-            escapedDesc,
-            escapedPm,
-            baseAmt,
-            shippingAndTax,
-            escapedTitle,
-            item.price,
-            item.quantity,
-            escapedSeller,
-            item.url || "",
-          ].join(",");
-          csvContent += rowData + "\n";
-        });
-      } else {
-        // Non-itemized flat row fallback
-        const rowData = [
-          tx.date,
-          tx.orderId || "N/A",
-          escapedDesc,
-          escapedPm,
-          baseAmt,
-          0.0,
-          "Unitemized Transaction",
-          baseAmt,
-          1,
-          "Amazon",
-          tx.detailsLink || "",
-        ].join(",");
-        csvContent += rowData + "\n";
-      }
-    });
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `DataPrime_Spending_Export_${new Date().toISOString().split("T")[0]}.csv`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
-
-  /**
-   * Downloads a full formatted JSON dump of the currently filtered transaction dataset.
-   * Serializes the array, constructs a Blob, triggers a browser download using a
-   * transient Object URL, and cleans up memory immediately.
-   */
-  function exportToJSON() {
-    if (filteredTransactions.length === 0) return;
-
-    const exportedTransactions = filteredTransactions.map((tx) => {
+    const enhancedTransactions = filteredTransactions.map((tx) => {
       const isRefund = tx.amount < 0;
       let displayItems = tx.items || [];
 
@@ -1103,7 +885,6 @@ document.addEventListener("DOMContentLoaded", () => {
           const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
           shippingAndTax = isRefund ? -Math.abs(diff) : Math.abs(diff);
         }
-        // Round to 2 decimals
         shippingAndTax = parseFloat(shippingAndTax.toFixed(2));
       }
 
@@ -1117,172 +898,54 @@ document.addEventListener("DOMContentLoaded", () => {
       return updatedTx;
     });
 
-    const blob = new Blob([JSON.stringify(exportedTransactions, null, 2)], {
-      type: "application/json;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `DataPrime_Analytics_Export_${new Date().toISOString().split("T")[0]}.json`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
-
-  // --- Helpers ---
-
-  function formatCurrency(val) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(val);
-  }
-
-  function formatCurrencyCompact(val) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      notation: "compact",
-      compactDisplay: "short",
-    }).format(val);
-  }
-
-  function escapeHtml(text) {
-    if (!text) return "";
-    const map = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;",
-    };
-    return text.toString().replace(/[&<>"']/g, (m) => map[m]);
-  }
-
-  function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
-
-  function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    jsonViewerBlock.innerHTML = syntaxHighlightJson(enhancedTransactions);
   }
 
   /**
-   * Finds the subset of items that best matches the refund amount.
+   * Formats a JSON object with HTML classes for color-coded syntax highlighting.
    */
-  function getRefundItems(items, refundAmount) {
-    if (!items || items.length === 0) return [];
-    const target = Math.abs(refundAmount);
-
-    // Flatten items by quantity to handle individual unit returns
-    const flatItems = [];
-    items.forEach((item, index) => {
-      const qty = item.quantity || 1;
-      for (let q = 0; q < qty; q++) {
-        flatItems.push({
-          ...item,
-          originalIndex: index,
-          quantity: 1,
-        });
-      }
-    });
-
-    // If total sum of all items is less than target, or very close (e.g. target includes tax/shipping)
-    const totalSum = flatItems.reduce(
-      (acc, item) => acc + (item.price || 0),
-      0,
+  function syntaxHighlightJson(jsonObj) {
+    let json = JSON.stringify(jsonObj, null, 2);
+    json = json
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return json.replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
+      (match) => {
+        let cls = "number";
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = "key";
+          } else {
+            cls = "string";
+          }
+        } else if (/true|false/.test(match)) {
+          cls = "boolean";
+        } else if (/null/.test(match)) {
+          cls = "null";
+        }
+        return `<span class="json-${cls}">${match}</span>`;
+      },
     );
-    if (totalSum <= target * 1.02) {
-      return items;
-    }
+  }
 
-    // Generate all subsets of flatItems (limit size to prevent slow loops)
-    let bestSubset = [];
-    let bestDiff = Infinity;
+  /**
+   * Updates the UI indicators on the table headers.
+   */
+  function updateHeaderUI() {
+    document.querySelectorAll("th.sortable").forEach((th) => {
+      const field = th.getAttribute("data-sort");
+      const icon = th.querySelector(".sort-icon");
+      if (!icon) return;
 
-    if (flatItems.length <= 10) {
-      const n = flatItems.length;
-      const limit = 1 << n;
-      for (let i = 1; i < limit; i++) {
-        const subset = [];
-        let sum = 0;
-        for (let j = 0; j < n; j++) {
-          if ((i & (1 << j)) !== 0) {
-            subset.push(flatItems[j]);
-            sum += flatItems[j].price || 0;
-          }
-        }
-
-        if (sum <= target * 1.02) {
-          const diff = target - sum;
-          if (diff < bestDiff) {
-            bestDiff = diff;
-            bestSubset = subset;
-          }
-        }
+      if (field === sortField) {
+        th.classList.add("active-sort");
+        icon.textContent = sortDir === "asc" ? " ↑" : " ↓";
+      } else {
+        th.classList.remove("active-sort");
+        icon.textContent = " ↕";
       }
-    }
-
-    // Greedy fallback if flatItems size > 10 or subset search found nothing
-    if (bestSubset.length === 0 || flatItems.length > 10) {
-      const sortedItems = [...flatItems].sort(
-        (a, b) => (b.price || 0) - (a.price || 0),
-      );
-      let currentSum = 0;
-      const subset = [];
-      for (const item of sortedItems) {
-        if (currentSum + (item.price || 0) <= target * 1.02) {
-          subset.push(item);
-          currentSum += item.price || 0;
-        }
-      }
-      if (subset.length > 0) {
-        bestSubset = subset;
-      }
-    }
-
-    // Closest single item fallback
-    if (bestSubset.length === 0) {
-      let closestItem = flatItems[0];
-      let closestDiff = Infinity;
-      flatItems.forEach((item) => {
-        const diff = Math.abs((item.price || 0) - target);
-        if (diff < closestDiff) {
-          closestDiff = diff;
-          closestItem = item;
-        }
-      });
-      if (closestItem) {
-        bestSubset = [closestItem];
-      }
-    }
-
-    // Re-group flat items back by their original index
-    const groupedMap = new Map();
-    bestSubset.forEach((flatItem) => {
-      const orig = items[flatItem.originalIndex];
-      if (!groupedMap.has(flatItem.originalIndex)) {
-        groupedMap.set(flatItem.originalIndex, {
-          ...orig,
-          quantity: 0,
-        });
-      }
-      groupedMap.get(flatItem.originalIndex).quantity += 1;
     });
-
-    return Array.from(groupedMap.values());
   }
 });

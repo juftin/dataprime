@@ -9,6 +9,7 @@ module.exports = [
       globals: {
         // Browser globals
         window: "readonly",
+        navigator: "readonly",
         document: "readonly",
         console: "readonly",
         setTimeout: "readonly",
@@ -37,6 +38,40 @@ module.exports = [
         module: "readonly",
         process: "readonly",
         __dirname: "readonly",
+
+        // DataPrime content script shared globals
+        scrapingState: "writable",
+        hudElement: "writable",
+        hudConsole: "writable",
+        ensureHUD: "readonly",
+        removeHUD: "readonly",
+        logToHUD: "readonly",
+        updateHUDStatus: "readonly",
+        updateTabTitle: "readonly",
+        parseTransactionElement: "readonly",
+        parsePaymentMethod: "readonly",
+        isElementDisabled: "readonly",
+        findNextButton: "readonly",
+        findPreviousButton: "readonly",
+        isElementVisible: "readonly",
+        scrapeHeuristicFallback: "readonly",
+        runItemizationInContentScript: "readonly",
+        parseOrderDetailsHtml: "readonly",
+        parseOrderSummary: "readonly",
+        parseOrderDetailsHtmlRegexFallback: "readonly",
+        isPromotionalItem: "readonly",
+        sleep: "readonly",
+        safeISO: "readonly",
+        notifyProgress: "readonly",
+        notifyError: "readonly",
+        finishScraping: "readonly",
+        saveSessionState: "readonly",
+        clearSessionState: "readonly",
+        startScrapingLoop: "readonly",
+        waitForTransactions: "readonly",
+        pollForAjaxUpdate: "readonly",
+        scrapeCurrentPage: "readonly",
+        concludeScrape: "readonly",
       },
     },
     rules: {
@@ -52,6 +87,13 @@ module.exports = [
       "no-empty": "warn",
       "no-unreachable": "error",
       "valid-typeof": "error",
+    },
+  },
+  {
+    // Specific settings for ES module files in MV3
+    files: ["background.js", "background/**/*.js", "dashboard/**/*.js"],
+    languageOptions: {
+      sourceType: "module",
     },
   },
 ];

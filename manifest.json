@@ -3,7 +3,7 @@
   "name": "DataPrime - Amazon Transaction Tracker",
   "version": "1.0.0",
   "description": "Scrapes your Amazon transactions, providing itemized details and spending insights inside a gorgeous interactive dashboard.",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab", "scripting", "tabs"],
   "host_permissions": ["https://*.amazon.com/*"],
   "action": {
     "default_popup": "popup/popup.html",
@@ -29,13 +29,19 @@
         "https://*.amazon.com/cpe/yourpayments/transactions/*",
         "https://*.amazon.com/cpe/yourpayments/overview*"
       ],
-      "js": ["content.js"],
+      "js": [
+        "content-scripts/utils.js",
+        "content-scripts/hud.js",
+        "content-scripts/parser.js",
+        "content-scripts/itemizer.js",
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["dashboard/results.html"],
+      "resources": ["dashboard/results.html", "icons/*"],
       "matches": ["<all_urls>"]
     }
   ]

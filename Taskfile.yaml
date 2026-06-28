@@ -54,7 +54,7 @@ tasks:
     cmds:
       - echo "Building extension package..."
       - rm -f dataprime-extension.zip
-      - zip -r dataprime-extension.zip manifest.json content.js background.js icons/ popup/ dashboard/ -x "*.DS_Store" "*__pycache__*"
+      - zip -r dataprime-extension.zip manifest.json content.js background.js content-scripts/ background/ icons/ popup/ dashboard/ -x "*.DS_Store" "*__pycache__*"
       - echo "Extension packaged successfully as dataprime-extension.zip!"
 
   build:
