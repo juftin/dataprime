@@ -441,7 +441,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sortField === "date") {
         comparison = new Date(a.date) - new Date(b.date);
       } else if (sortField === "amount") {
-        comparison = Math.abs(a.amount) - Math.abs(b.amount);
+        comparison = a.amount - b.amount;
       } else if (sortField === "orderId") {
         comparison = (a.orderId || "").localeCompare(b.orderId || "");
       } else if (sortField === "description") {
