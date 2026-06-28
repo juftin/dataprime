@@ -84,11 +84,10 @@ document.addEventListener("DOMContentLoaded", () => {
   chrome.runtime.onMessage.addListener((message) => {
     if (message.action === "SCRAPE_STATE_CHANGED") {
       const payload = message.payload;
-      if (payload.status === "COMPLETED" || payload.status === "ITEMIZING") {
-        loadData();
-      }
       if (payload.status === "COMPLETED") {
-        closeAnalyzeModal();
+        window.location.reload();
+      } else if (payload.status === "ITEMIZING") {
+        loadData();
       }
     }
   });
@@ -267,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (confirm("Inject realistic demo transactions for spending analytics?")) {
       chrome.runtime.sendMessage({ action: "SEED_DEMO_DATA" }, (res) => {
         if (res && res.status === "SUCCESS") {
-          loadData();
+          window.location.reload();
         }
       });
     }
@@ -282,9 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.runtime.lastError;
 
         chrome.storage.local.clear(() => {
-          allTransactions = [];
-          updateView();
-          syncTimeText.innerText = "Database: Wiped clean";
+          window.location.reload();
         });
       });
     }
