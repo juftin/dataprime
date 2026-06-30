@@ -667,15 +667,15 @@ document.addEventListener("DOMContentLoaded", () => {
   function calculateKPIs() {
     if (filteredTransactions.length === 0) {
       kpiTotalSpent.innerText = "$0.00";
-      kpiSpentSub.innerText = "Includes $0.00 in refunds";
+      kpiSpentSub.innerText = "No transactions";
       kpiTxCount.innerText = "0";
-      kpiTxSub.innerText = "0 orders, 0 refunds";
+      kpiTxSub.innerText = "0 purchases, 0 refunds";
       kpiTotalItems.innerText = "0";
-      kpiItemsSub.innerText = "Avg. 0.0 items per order";
+      kpiItemsSub.innerText = "0 items";
       kpiAvgOrder.innerText = "$0.00";
-      kpiAvgSub.innerText = "Median order size: $0.00";
+      kpiAvgSub.innerText = "Median $0.00";
       kpiTopMonth.innerText = "N/A";
-      kpiTopMonthSub.innerText = "Peak month: $0.00";
+      kpiTopMonthSub.innerText = "Peak $0.00";
       return;
     }
 
@@ -709,17 +709,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const netSpent = purchasesSum - refundsSum;
     kpiTotalSpent.innerText = formatCurrency(netSpent);
-    kpiSpentSub.innerText = `Spent ${formatCurrency(purchasesSum)} | Refunded ${formatCurrency(refundsSum)}`;
+    kpiSpentSub.innerText = `Spent ${formatCurrency(purchasesSum)} · Refunded ${formatCurrency(refundsSum)}`;
 
     kpiTxCount.innerText = filteredTransactions.length;
-    kpiTxSub.innerText = `${orderCount} orders, ${refundCount} refunds`;
+    kpiTxSub.innerText = `${orderCount} purchases, ${refundCount} refunds`;
 
     kpiTotalItems.innerText = totalItemsCount;
-    const avgItems =
-      ordersWithItemsCount > 0
-        ? (totalItemsCount / ordersWithItemsCount).toFixed(1)
-        : "0.0";
-    kpiItemsSub.innerText = `Across ${ordersWithItemsCount} itemized order listings (Avg ${avgItems}/order)`;
+    kpiItemsSub.innerText = `${totalItemsCount} items across ${ordersWithItemsCount} orders`;
 
     const avgOrderValue = orderCount > 0 ? purchasesSum / orderCount : 0;
     kpiAvgOrder.innerText = formatCurrency(avgOrderValue);
@@ -733,7 +729,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ? purchaseAmounts[mid]
           : (purchaseAmounts[mid - 1] + purchaseAmounts[mid]) / 2;
     }
-    kpiAvgSub.innerText = `Median order size: ${formatCurrency(median)} (${orderCount} total orders)`;
+    kpiAvgSub.innerText = `Median ${formatCurrency(median)}`;
 
     const monthlyGroups = {};
     filteredTransactions.forEach((tx) => {
@@ -761,9 +757,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     kpiTopMonth.innerText = topMonthName;
     kpiTopMonthSub.innerText =
-      topMonthMax > 0
-        ? `Peak month volume: ${formatCurrency(topMonthMax)}`
-        : "No purchases recorded";
+      topMonthMax > 0 ? `Peak ${formatCurrency(topMonthMax)}` : "No purchases";
   }
 
   /**

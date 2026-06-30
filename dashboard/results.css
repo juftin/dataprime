@@ -509,6 +509,7 @@ body::after {
   transition:
     transform 0.2s ease,
     border-color 0.2s ease;
+  min-height: 76px;
 }
 
 .kpi-card:hover {
@@ -578,6 +579,9 @@ body::after {
 .kpi-metrics .sub {
   font-size: 10px;
   color: var(--text-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .text-gradient {
