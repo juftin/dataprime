@@ -502,9 +502,10 @@ body::after {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 16px 20px;
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 44px 1fr;
   gap: 16px;
+  align-items: center;
   backdrop-filter: blur(10px);
   transition:
     transform 0.2s ease,
@@ -529,7 +530,6 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
 .bg-indigo-glow {
@@ -558,11 +558,9 @@ body::after {
 }
 
 .kpi-metrics {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: grid;
+  grid-template-rows: auto auto auto;
   min-width: 0;
-  flex: 1;
 }
 
 .kpi-metrics .lbl {
@@ -575,12 +573,13 @@ body::after {
   min-height: 28px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .kpi-metrics .val {
   font-size: 20px;
   font-weight: 800;
-  margin: 2px 0;
 }
 
 .kpi-metrics .sub {
