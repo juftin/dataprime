@@ -671,7 +671,7 @@ document.addEventListener("DOMContentLoaded", () => {
       kpiTxCount.innerText = "0";
       kpiTxSub.innerText = "0 purchases, 0 refunds";
       kpiTotalItems.innerText = "0";
-      kpiItemsSub.innerText = "0 items";
+      kpiItemsSub.innerText = "Avg 0.0 items/order";
       kpiAvgOrder.innerText = "$0.00";
       kpiAvgSub.innerText = "Median $0.00";
       kpiTopMonth.innerText = "N/A";
@@ -715,7 +715,11 @@ document.addEventListener("DOMContentLoaded", () => {
     kpiTxSub.innerText = `${orderCount} purchases, ${refundCount} refunds`;
 
     kpiTotalItems.innerText = totalItemsCount;
-    kpiItemsSub.innerText = `${totalItemsCount} items across ${ordersWithItemsCount} orders`;
+    const avgItemsPer =
+      ordersWithItemsCount > 0
+        ? (totalItemsCount / ordersWithItemsCount).toFixed(1)
+        : "0.0";
+    kpiItemsSub.innerText = `Avg ${avgItemsPer} items/order`;
 
     const avgOrderValue = orderCount > 0 ? purchasesSum / orderCount : 0;
     kpiAvgOrder.innerText = formatCurrency(avgOrderValue);
