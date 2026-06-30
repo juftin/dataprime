@@ -47,6 +47,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const kpiTotalSpent = document.getElementById("kpiTotalSpent");
   const kpiSpentSub = document.getElementById("kpiSpentSub");
+  const kpiTxCount = document.getElementById("kpiTxCount");
+  const kpiTxSub = document.getElementById("kpiTxSub");
   const kpiTotalItems = document.getElementById("kpiTotalItems");
   const kpiItemsSub = document.getElementById("kpiItemsSub");
   const kpiAvgOrder = document.getElementById("kpiAvgOrder");
@@ -666,6 +668,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (filteredTransactions.length === 0) {
       kpiTotalSpent.innerText = "$0.00";
       kpiSpentSub.innerText = "Includes $0.00 in refunds";
+      kpiTxCount.innerText = "0";
+      kpiTxSub.innerText = "0 orders, 0 refunds";
       kpiTotalItems.innerText = "0";
       kpiItemsSub.innerText = "Avg. 0.0 items per order";
       kpiAvgOrder.innerText = "$0.00";
@@ -677,6 +681,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let purchasesSum = 0;
     let refundsSum = 0;
+    let orderCount = 0;
+    let refundCount = 0;
     let totalItemsCount = 0;
     let ordersWithItemsCount = 0;
 
@@ -686,9 +692,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const isRefund = tx.paymentAmount < 0;
       if (isRefund) {
         refundsSum += Math.abs(tx.paymentAmount);
+        refundCount++;
       } else {
         purchasesSum += tx.paymentAmount;
         purchaseAmounts.push(tx.paymentAmount);
+        orderCount++;
       }
 
       if (tx.items && tx.items.length > 0) {
@@ -703,6 +711,9 @@ document.addEventListener("DOMContentLoaded", () => {
     kpiTotalSpent.innerText = formatCurrency(netSpent);
     kpiSpentSub.innerText = `Spent ${formatCurrency(purchasesSum)} | Refunded ${formatCurrency(refundsSum)}`;
 
+    kpiTxCount.innerText = filteredTransactions.length;
+    kpiTxSub.innerText = `${orderCount} orders, ${refundCount} refunds`;
+
     kpiTotalItems.innerText = totalItemsCount;
     const avgItems =
       ordersWithItemsCount > 0
@@ -710,7 +721,6 @@ document.addEventListener("DOMContentLoaded", () => {
         : "0.0";
     kpiItemsSub.innerText = `Across ${ordersWithItemsCount} itemized order listings (Avg ${avgItems}/order)`;
 
-    const orderCount = purchaseAmounts.length;
     const avgOrderValue = orderCount > 0 ? purchasesSum / orderCount : 0;
     kpiAvgOrder.innerText = formatCurrency(avgOrderValue);
 
