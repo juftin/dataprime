@@ -472,7 +472,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (result.lastScraped) {
       const fmt = { month: "short", day: "numeric", year: "numeric" };
       const syncDate = new Date(result.lastScraped);
-      kpiLastAnalysis.innerText = syncDate.toLocaleDateString("en-US", fmt);
+      kpiLastAnalysis.innerText = relativeTime(syncDate);
       if (result.scrapeStartDate && result.scrapeEndDate) {
         const start = new Date(result.scrapeStartDate).toLocaleDateString(
           "en-US",
@@ -1380,6 +1380,32 @@ document.addEventListener("DOMContentLoaded", () => {
   /**
    * Updates the results badge count based on active view.
    */
+  /**
+   * Returns a human-readable relative time string ("2 hours ago").
+   * @param {Date} date
+   * @returns {string}
+   */
+  function relativeTime(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+
+    if (diffMin < 1) return "Just now";
+    if (diffMin < 60) return `${diffMin} min ago`;
+    if (diffHr < 24) return `${diffHr} hour${diffHr > 1 ? "s" : ""} ago`;
+    if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? "s" : ""} ago`;
+    if (diffDay < 30)
+      return `${Math.floor(diffDay / 7)} week${Math.floor(diffDay / 7) > 1 ? "s" : ""} ago`;
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
   function updateResultsCount() {
     if (registryMode === "itemized") {
       const itemRows = getItemizedRows(filteredTransactions);
