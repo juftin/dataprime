@@ -453,6 +453,12 @@ body::after {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: var(--bg-color);
+  padding: 30px 30px 12px;
+  margin: -30px -30px 24px;
 }
 
 .header-brand {
