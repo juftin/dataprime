@@ -161,6 +161,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (event.data && event.data.action === "CLOSE_ANALYZE_MODAL") {
       closeAnalyzeModal();
     }
+    if (event.data && event.data.action === "RESIZE_IFRAME") {
+      if (analyzeIframe && event.data.height) {
+        analyzeIframe.style.height = event.data.height + "px";
+      }
+    }
   });
 
   // 2. Add Filter Event Listeners

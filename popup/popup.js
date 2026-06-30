@@ -74,12 +74,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (state) {
       updateUIFromState(state);
     }
+    setTimeout(notifyResize, 100);
   });
 
   // Listen for state changes from background service worker
   chrome.runtime.onMessage.addListener((message) => {
     if (message.action === "SCRAPE_STATE_CHANGED") {
       updateUIFromState(message.payload);
+      setTimeout(notifyResize, 50);
     }
   });
 
@@ -102,6 +104,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       } else {
         customDatesRow.style.display = "none";
       }
+      setTimeout(notifyResize, 50);
     });
   });
 
@@ -326,6 +329,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   /**
+   * Posts the current body height to the parent window for iframe auto-sizing.
+   */
+  function notifyResize() {
+    if (window.self !== window.top) {
+      const height = document.body.scrollHeight;
+      window.parent.postMessage({ action: "RESIZE_IFRAME", height }, "*");
+    }
+  }
+
+  /**
    * Animates transition between panels
    */
   function switchPanel(panelEl) {
@@ -333,6 +346,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       p.classList.remove("active");
     });
     panelEl.classList.add("active");
+    setTimeout(notifyResize, 50);
   }
 
   /**
