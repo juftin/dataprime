@@ -470,11 +470,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Populate last analysis KPI card
     if (result.lastScraped) {
+      const fmt = { month: "short", day: "numeric", year: "numeric" };
       const syncDate = new Date(result.lastScraped);
-      kpiLastAnalysis.innerText = syncDate.toLocaleDateString();
+      kpiLastAnalysis.innerText = syncDate.toLocaleDateString("en-US", fmt);
       if (result.scrapeStartDate && result.scrapeEndDate) {
-        const start = new Date(result.scrapeStartDate).toLocaleDateString();
-        const end = new Date(result.scrapeEndDate).toLocaleDateString();
+        const start = new Date(result.scrapeStartDate).toLocaleDateString(
+          "en-US",
+          fmt,
+        );
+        const end = new Date(result.scrapeEndDate).toLocaleDateString(
+          "en-US",
+          fmt,
+        );
         kpiAnalysisSub.innerText = `${start} – ${end}`;
       } else {
         kpiAnalysisSub.innerText = "Date range unavailable";

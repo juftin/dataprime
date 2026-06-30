@@ -605,6 +605,7 @@ body::after {
   white-space: nowrap;
   min-height: 14px;
   line-height: 1.4;
+  text-align: center;
 }
 
 .text-gradient {
