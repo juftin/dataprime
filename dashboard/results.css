@@ -516,8 +516,7 @@ body::after {
   padding: 16px 20px;
   display: grid;
   grid-template-columns: 44px 1fr;
-  grid-template-rows: auto auto;
-  gap: 4px 16px;
+  gap: 16px;
   align-items: center;
   backdrop-filter: blur(10px);
   transition:
@@ -572,7 +571,7 @@ body::after {
 
 .kpi-metrics {
   display: grid;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   min-width: 0;
 }
 
@@ -596,8 +595,7 @@ body::after {
   text-align: center;
 }
 
-.kpi-card > .sub {
-  grid-column: 1 / -1;
+.kpi-metrics .sub {
   font-size: 10px;
   color: var(--text-dark);
   overflow: hidden;
@@ -605,7 +603,6 @@ body::after {
   white-space: nowrap;
   min-height: 14px;
   line-height: 1.4;
-  text-align: center;
 }
 
 .text-gradient {
