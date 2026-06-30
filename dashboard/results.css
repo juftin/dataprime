@@ -29,6 +29,34 @@
   --text-gradient: linear-gradient(135deg, #c7d2fe 0%, #f472b6 100%);
 }
 
+/* Light theme custom property overrides */
+[data-theme="light"] {
+  --bg-color: #f5f6fa;
+  --sidebar-bg: rgba(255, 255, 255, 0.85);
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --panel-bg: rgba(255, 255, 255, 0.6);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --border-accent: rgba(99, 102, 241, 0.3);
+
+  --text-main: #111827;
+  --text-muted: #6b7280;
+  --text-dark: #9ca3af;
+
+  --primary-indigo: #6366f1;
+  --primary-violet: #8b5cf6;
+  --accent-cyan: #06b6d4;
+  --success-emerald: #059669;
+  --warning-amber: #d97706;
+  --danger-rose: #e11d48;
+
+  --indigo-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --violet-gradient: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+  --emerald-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --amber-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --text-gradient: linear-gradient(135deg, #4f46e5 0%, #db2777 100%);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -1319,4 +1347,224 @@ svg text {
 }
 .row-highlight {
   animation: rowGlow 2.5s ease-out;
+}
+
+/* ============================================================
+   Light Theme — Hardcoded Color Overrides
+   ============================================================ */
+
+/* Body glow effects — much more subtle on light backgrounds */
+[data-theme="light"] body::before {
+  background: radial-gradient(
+    circle,
+    rgba(99, 102, 241, 0.04) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
+}
+[data-theme="light"] body::after {
+  background: radial-gradient(
+    circle,
+    rgba(139, 92, 246, 0.03) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
+}
+
+/* Scrollbar — adapt to light backgrounds */
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* Brand text gradient — dark on light */
+[data-theme="light"] .brand-text h1 {
+  background: linear-gradient(to right, #111827, #4f46e5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Input fields — light rgba backgrounds */
+[data-theme="light"] .search-box input {
+  background: rgba(0, 0, 0, 0.02);
+}
+[data-theme="light"] .search-box input:focus {
+  background: rgba(0, 0, 0, 0.03);
+}
+[data-theme="light"] .input-wrap input {
+  background: rgba(0, 0, 0, 0.02);
+}
+[data-theme="light"] .input-wrap input:focus {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* Checkbox — light rgba background */
+[data-theme="light"] .check-box {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Buttons — secondary needs dark text on light bg */
+[data-theme="light"] .btn-secondary {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-main);
+}
+[data-theme="light"] .btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+/* Divider in db-actions */
+[data-theme="light"] .db-actions .divider {
+  color: rgba(0, 0, 0, 0.1);
+}
+
+/* Chart controls / registry controls */
+[data-theme="light"] .chart-controls,
+[data-theme="light"] .registry-controls {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* SVG chart grid & axis lines */
+[data-theme="light"] .chart-grid-line {
+  stroke: rgba(0, 0, 0, 0.05);
+}
+[data-theme="light"] .chart-axis-line {
+  stroke: rgba(0, 0, 0, 0.12);
+}
+
+/* Chart tooltip — light surface */
+[data-theme="light"] .chart-tooltip {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+[data-theme="light"] .chart-tooltip .val {
+  color: #111827;
+}
+
+/* Table sorting select */
+[data-theme="light"] .table-sorting select {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Results badge — darker text for light bg */
+[data-theme="light"] .results-badge {
+  color: #4f46e5;
+}
+
+/* Table row hover & expanded states */
+[data-theme="light"] .dashboard-table tbody tr.tx-row:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+[data-theme="light"] .dashboard-table tbody tr.tx-row.expanded {
+  background-color: rgba(99, 102, 241, 0.04);
+}
+[data-theme="light"] .dashboard-table th.sortable:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Items badge */
+[data-theme="light"] .tx-row .items-badge {
+  background: rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .tx-row .items-badge.itemized {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+/* Details expanded row — light bg */
+[data-theme="light"] .details-row {
+  background-color: rgba(245, 246, 250, 0.6);
+}
+
+/* Details subheader border */
+[data-theme="light"] .details-subheader {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Item cards */
+[data-theme="light"] .item-card {
+  background: rgba(0, 0, 0, 0.015);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .item-card:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* Details receipt border */
+[data-theme="light"] .details-receipt {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+/* JSON viewer panels */
+[data-theme="light"] .json-responsive {
+  background: rgba(245, 246, 250, 0.6);
+}
+[data-theme="light"] .json-header-bar {
+  background: rgba(0, 0, 0, 0.03);
+}
+[data-theme="light"] .btn-copy-json {
+  background: rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .btn-copy-json:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+[data-theme="light"] .json-collapsible-block {
+  border-left-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .json-collapsed-text {
+  background: rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .json-bracket {
+  color: #374151;
+}
+
+/* Modal overlay — lighter backdrop */
+[data-theme="light"] .modal-overlay {
+  background: rgba(245, 246, 250, 0.7);
+}
+[data-theme="light"] .modal-content {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Sidebar select */
+[data-theme="light"] .sidebar-select {
+  background: rgba(0, 0, 0, 0.02);
+}
+[data-theme="light"] .sidebar-select:focus {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* Row glow animation — light-mode version */
+@keyframes rowGlowLight {
+  0% {
+    background-color: rgba(99, 102, 241, 0.15);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+[data-theme="light"] .row-highlight {
+  animation: rowGlowLight 2.5s ease-out;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 8px 10px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: var(--text-muted);
+}
+.theme-toggle:hover {
+  border-color: var(--primary-indigo);
+  background: rgba(99, 102, 241, 0.08);
 }

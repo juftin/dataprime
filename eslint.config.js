@@ -29,9 +29,16 @@ module.exports = [
         DOMParser: "readonly",
         NodeFilter: "readonly",
         Intl: "readonly",
+        CustomEvent: "readonly",
 
         // WebExtension globals
         chrome: "readonly",
+
+        // DataPrime theme globals (loaded via <script> in popup/dashboard)
+        initTheme: "readonly",
+        setTheme: "readonly",
+        getThemeMode: "readonly",
+        nextThemeMode: "readonly",
 
         // Node globals (for tests)
         require: "readonly",

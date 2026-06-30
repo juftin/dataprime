@@ -154,7 +154,7 @@ export function renderChart(
           <div class="date">${d.label} Spending Details</div>
           <div class="val">Purchased: ${formatCurrency(d.purchases)}</div>
           <div class="val" style="color: var(--success-emerald)">Refunded: ${formatCurrency(d.refunds)}</div>
-          <div class="val" style="border-top:1px solid rgba(255,255,255,0.08);margin-top:4px;padding-top:4px;">Net Total: ${formatCurrency(d.net)}</div>
+          <div class="val" style="border-top:1px solid var(--border-color);margin-top:4px;padding-top:4px;">Net Total: ${formatCurrency(d.net)}</div>
         `,
         );
       });
@@ -252,7 +252,7 @@ export function renderChart(
             `
             <div class="date">${new Date(c.date).toLocaleDateString()}</div>
             <div class="val">Transaction: ${formatCurrency(c.amount)}</div>
-            <div class="val" style="border-top:1px solid rgba(255,255,255,0.08);margin-top:4px;padding-top:4px;">Cumulative Spend: ${formatCurrency(c.cumulative)}</div>
+            <div class="val" style="border-top:1px solid var(--border-color);margin-top:4px;padding-top:4px;">Cumulative Spend: ${formatCurrency(c.cumulative)}</div>
             <div class="date" style="font-family:monospace;margin-top:2px;">Order ${c.orderId}</div>
           `,
           );

@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="results.css" />
     <link rel="icon" type="image/svg+xml" href="../icons/logo.svg" />
     <link rel="alternate icon" type="image/png" href="../icons/icon16.png" />
+    <script src="../theme.js"></script>
     <script src="results.js" type="module"></script>
   </head>
   <body>
@@ -172,7 +173,17 @@
             <h2>Purchase Dashboard</h2>
             <p id="syncTime">Database: Syncing status...</p>
           </div>
-          <div class="header-actions" style="display: flex; gap: 10px">
+          <div
+            class="header-actions"
+            style="display: flex; gap: 10px; align-items: center"
+          >
+            <button
+              id="btnThemeToggle"
+              class="theme-toggle"
+              title="Toggle theme"
+            >
+              ☀️
+            </button>
             <button
               id="btnAnalyzeMore"
               class="btn btn-primary btn-glow"

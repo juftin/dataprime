@@ -39,6 +39,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Local state
   let currentPreset = "30";
 
+  // Theme toggle
+  const btnThemeToggle = document.getElementById("btnThemeToggle");
+  const themeIcons = { light: "\u2600\ufe0f", dark: "\ud83c\udf19" };
+
+  if (btnThemeToggle) {
+    getThemeMode((mode) => {
+      btnThemeToggle.innerText = themeIcons[mode] || themeIcons.dark;
+      btnThemeToggle.title = `Theme: ${mode}`;
+    });
+
+    btnThemeToggle.addEventListener("click", () => {
+      getThemeMode((current) => {
+        setTheme(nextThemeMode(current));
+      });
+    });
+
+    window.addEventListener("themeChanged", (e) => {
+      const mode = e.detail;
+      btnThemeToggle.innerText = themeIcons[mode] || themeIcons.dark;
+      btnThemeToggle.title = `Theme: ${mode}`;
+    });
+  }
+
   // Circular progress calculations
   const outerCircumference = 2 * Math.PI * 44;
   const innerCircumference = 2 * Math.PI * 34;

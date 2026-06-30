@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnResetFilters = document.getElementById("btnResetFilters");
   const btnSeedDemo = document.getElementById("btnSeedDemo");
   const btnClearData = document.getElementById("btnClearData");
+  const btnThemeToggle = document.getElementById("btnThemeToggle");
 
   // DOM Elements - Header & Stats
   const syncTimeText = document.getElementById("syncTime");
@@ -80,6 +81,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const jsonViewContainer = document.getElementById("jsonViewContainer");
   const jsonViewerBlock = document.getElementById("jsonViewerBlock");
   const btnCopyJson = document.getElementById("btnCopyJson");
+
+  // Theme toggle icons keyed by mode
+  const themeIcons = { light: "\u2600\ufe0f", dark: "\ud83c\udf19" };
+
+  // Initialize theme toggle button state
+  if (btnThemeToggle) {
+    getThemeMode((mode) => {
+      btnThemeToggle.innerText = themeIcons[mode] || themeIcons.dark;
+      btnThemeToggle.title = `Theme: ${mode}`;
+    });
+
+    btnThemeToggle.addEventListener("click", () => {
+      getThemeMode((current) => {
+        setTheme(nextThemeMode(current));
+      });
+    });
+
+    window.addEventListener("themeChanged", (e) => {
+      const mode = e.detail;
+      btnThemeToggle.innerText = themeIcons[mode] || themeIcons.dark;
+      btnThemeToggle.title = `Theme: ${mode}`;
+    });
+  }
 
   // 1. Initialize Dashboard
   loadData();
