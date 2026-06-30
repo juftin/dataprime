@@ -1272,6 +1272,7 @@ html.registry-json #btnJsonView {
   cursor: pointer;
   position: relative;
   user-select: none;
+  white-space: nowrap;
   transition:
     background-color 0.2s,
     color 0.2s;
