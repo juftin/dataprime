@@ -410,11 +410,12 @@ document.addEventListener("DOMContentLoaded", () => {
         analyzeIframe.onload = () => {
           try {
             const body = analyzeIframe.contentDocument.body;
-            const height = body.scrollHeight;
-            if (height) analyzeIframe.style.height = height + "px";
+            setTimeout(() => {
+              const height = body.scrollHeight;
+              if (height) analyzeIframe.style.height = height + "px";
+            });
           } catch {
-            /* noop */
-            /* cross-origin */
+            /* cross-origin, ignore */
           }
         };
         analyzeIframe.src = analyzeIframe.src;
