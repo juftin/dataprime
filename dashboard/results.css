@@ -580,6 +580,7 @@ body::after {
 .kpi-metrics .val {
   font-size: 20px;
   font-weight: 800;
+  text-align: center;
 }
 
 .kpi-metrics .sub {
@@ -590,6 +591,7 @@ body::after {
   white-space: nowrap;
   min-height: 14px;
   line-height: 1.4;
+  align-self: end;
 }
 
 .text-gradient {
