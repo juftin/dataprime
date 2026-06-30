@@ -224,6 +224,10 @@ document.addEventListener("DOMContentLoaded", () => {
     btnItemizedView.classList.remove("active");
     btnJsonView.classList.remove("active");
     registryMode = "grouped";
+    document.documentElement.classList.remove(
+      "registry-itemized",
+      "registry-json",
+    );
     chrome.storage.local.set({ registryMode: "grouped" });
     tableViewContainer.style.display = "block";
     itemizedViewContainer.style.display = "none";
@@ -237,6 +241,8 @@ document.addEventListener("DOMContentLoaded", () => {
     btnGroupedView.classList.remove("active");
     btnJsonView.classList.remove("active");
     registryMode = "itemized";
+    document.documentElement.classList.remove("registry-json");
+    document.documentElement.classList.add("registry-itemized");
     chrome.storage.local.set({ registryMode: "itemized" });
     tableViewContainer.style.display = "none";
     itemizedViewContainer.style.display = "block";
@@ -250,6 +256,8 @@ document.addEventListener("DOMContentLoaded", () => {
     btnGroupedView.classList.remove("active");
     btnItemizedView.classList.remove("active");
     registryMode = "json";
+    document.documentElement.classList.remove("registry-itemized");
+    document.documentElement.classList.add("registry-json");
     chrome.storage.local.set({ registryMode: "json" });
     tableViewContainer.style.display = "none";
     itemizedViewContainer.style.display = "none";
@@ -475,19 +483,28 @@ document.addEventListener("DOMContentLoaded", () => {
       btnExpandSidebar.style.display = "flex";
     }
 
-    // Restore persisted registry view mode (set state directly, then updateView)
-    if (result.registryMode) {
-      registryMode = result.registryMode;
-      btnGroupedView.classList.toggle("active", registryMode === "grouped");
-      btnItemizedView.classList.toggle("active", registryMode === "itemized");
-      btnJsonView.classList.toggle("active", registryMode === "json");
-      tableViewContainer.style.display =
-        registryMode === "grouped" ? "block" : "none";
-      itemizedViewContainer.style.display =
-        registryMode === "itemized" ? "block" : "none";
-      jsonViewContainer.style.display =
-        registryMode === "json" ? "block" : "none";
+    // Restore persisted registry view mode (preload.js may have already
+    // applied the html class; sync JS-side state with it)
+    const storedMode =
+      result.registryMode ||
+      (document.documentElement.classList.contains("registry-itemized")
+        ? "itemized"
+        : document.documentElement.classList.contains("registry-json")
+          ? "json"
+          : null);
+    if (storedMode) {
+      registryMode = storedMode;
+      document.documentElement.classList.add("registry-" + storedMode);
     }
+    btnGroupedView.classList.toggle("active", registryMode === "grouped");
+    btnItemizedView.classList.toggle("active", registryMode === "itemized");
+    btnJsonView.classList.toggle("active", registryMode === "json");
+    tableViewContainer.style.display =
+      registryMode === "grouped" ? "block" : "none";
+    itemizedViewContainer.style.display =
+      registryMode === "itemized" ? "block" : "none";
+    jsonViewContainer.style.display =
+      registryMode === "json" ? "block" : "none";
 
     updateView();
   }

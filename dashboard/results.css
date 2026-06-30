@@ -791,6 +791,46 @@ svg text {
   overflow-x: auto;
 }
 
+/* Hide alternate view containers by default; html classes override */
+#itemizedViewContainer,
+#jsonViewContainer {
+  display: none;
+}
+
+html.registry-itemized #tableViewContainer,
+html.registry-itemized #jsonViewContainer {
+  display: none;
+}
+html.registry-itemized #itemizedViewContainer {
+  display: block;
+}
+
+html.registry-json #tableViewContainer,
+html.registry-json #itemizedViewContainer {
+  display: none;
+}
+html.registry-json #jsonViewContainer {
+  display: block;
+}
+
+/* Active toggle button when preloaded */
+html.registry-itemized #btnGroupedView.active,
+html.registry-json #btnGroupedView.active {
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+}
+html.registry-itemized #btnItemizedView {
+  background: var(--indigo-gradient);
+  color: white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+html.registry-json #btnJsonView {
+  background: var(--indigo-gradient);
+  color: white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+
 .dashboard-table {
   width: 100%;
   border-collapse: collapse;
