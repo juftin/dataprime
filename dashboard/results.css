@@ -560,6 +560,9 @@ body::after {
 .kpi-metrics {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
 }
 
 .kpi-metrics .lbl {
@@ -568,6 +571,10 @@ body::after {
   text-transform: uppercase;
   color: var(--text-muted);
   letter-spacing: 0.5px;
+  line-height: 1.3;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
 }
 
 .kpi-metrics .val {
@@ -582,6 +589,8 @@ body::after {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-height: 14px;
+  line-height: 1.4;
 }
 
 .text-gradient {
