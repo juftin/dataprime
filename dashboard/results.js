@@ -45,8 +45,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // DOM Elements - Header & Stats
   const btnAnalyzeMore = document.getElementById("btnAnalyzeMore");
 
-  const kpiTotalSpent = document.getElementById("kpiTotalSpent");
-  const kpiSpentSub = document.getElementById("kpiSpentSub");
+  const kpiSpending = document.getElementById("kpiSpending");
+  const kpiSpendingSub = document.getElementById("kpiSpendingSub");
+  const kpiRefunds = document.getElementById("kpiRefunds");
+  const kpiRefundsSub = document.getElementById("kpiRefundsSub");
   const kpiTxCount = document.getElementById("kpiTxCount");
   const kpiTxSub = document.getElementById("kpiTxSub");
   const kpiTotalItems = document.getElementById("kpiTotalItems");
@@ -666,8 +668,10 @@ document.addEventListener("DOMContentLoaded", () => {
    */
   function calculateKPIs() {
     if (filteredTransactions.length === 0) {
-      kpiTotalSpent.innerText = "$0.00";
-      kpiSpentSub.innerText = "No transactions";
+      kpiSpending.innerText = "$0.00";
+      kpiSpendingSub.innerText = "0 purchases";
+      kpiRefunds.innerText = "$0.00";
+      kpiRefundsSub.innerText = "0 refunds";
       kpiTxCount.innerText = "0";
       kpiTxSub.innerText = "0 purchases, 0 refunds";
       kpiTotalItems.innerText = "0";
@@ -707,9 +711,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    const netSpent = purchasesSum - refundsSum;
-    kpiTotalSpent.innerText = formatCurrency(netSpent);
-    kpiSpentSub.innerText = `Spent ${formatCurrency(purchasesSum)} · Refunded ${formatCurrency(refundsSum)}`;
+    kpiSpending.innerText = formatCurrency(purchasesSum);
+    kpiSpendingSub.innerText = `${orderCount} purchases`;
+    kpiRefunds.innerText = formatCurrency(refundsSum);
+    kpiRefundsSub.innerText = `${refundCount} refunds`;
 
     kpiTxCount.innerText = filteredTransactions.length;
     kpiTxSub.innerText = `${orderCount} purchases, ${refundCount} refunds`;
