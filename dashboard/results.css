@@ -455,16 +455,21 @@ body::after {
   margin-bottom: 24px;
 }
 
-.header-title h2 {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.header-title p {
-  font-size: 12px;
+.header-brand .logo-orb {
+  width: 48px;
+  height: 48px;
+}
+
+.sync-status {
+  font-size: 11px;
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-bottom: 20px;
 }
 
 .refresh-btn {

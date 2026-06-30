@@ -39,16 +39,6 @@
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
-        <div class="brand">
-          <div class="logo-orb">
-            <img src="../icons/logo.svg" alt="DataPrime Logo" />
-          </div>
-          <div class="brand-text">
-            <h1>DataPrime</h1>
-            <p>Purchase Intelligence</p>
-          </div>
-        </div>
-
         <nav class="sidebar-nav">
           <!-- Search -->
           <div class="filter-section">
@@ -175,9 +165,14 @@
       <main class="main-content">
         <!-- Top Action Bar -->
         <header class="main-header">
-          <div class="header-title">
-            <h2>Purchase Dashboard</h2>
-            <p id="syncTime">Database: Syncing status...</p>
+          <div class="header-brand">
+            <div class="logo-orb">
+              <img src="../icons/logo.svg" alt="DataPrime Logo" />
+            </div>
+            <div class="brand-text">
+              <h1>DataPrime</h1>
+              <p>Purchase Intelligence</p>
+            </div>
           </div>
           <div
             class="header-actions"
@@ -210,6 +205,8 @@
             </button>
           </div>
         </header>
+
+        <div class="sync-status" id="syncTime">Database: Syncing status...</div>
 
         <!-- Grid of KPI Cards -->
         <section class="kpi-grid">
