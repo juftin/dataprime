@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let allTransactions = [];
   let filteredTransactions = [];
   let chartMode = "monthly"; // monthly or cumulative
-  let registryMode = "table"; // table or json
+  let registryMode = "grouped"; // grouped, itemized or json
   let sortField = "date"; // active sorting column field
   let sortDir = "desc"; // sort order direction (asc or desc)
 
@@ -70,9 +70,13 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   // View toggle selectors
-  const btnTableView = document.getElementById("btnTableView");
+  const btnGroupedView = document.getElementById("btnGroupedView");
+  const btnItemizedView = document.getElementById("btnItemizedView");
   const btnJsonView = document.getElementById("btnJsonView");
   const tableViewContainer = document.getElementById("tableViewContainer");
+  const itemizedViewContainer = document.getElementById(
+    "itemizedViewContainer",
+  );
   const jsonViewContainer = document.getElementById("jsonViewContainer");
   const jsonViewerBlock = document.getElementById("jsonViewerBlock");
   const btnCopyJson = document.getElementById("btnCopyJson");
@@ -158,33 +162,75 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 3b. Registry View Toggles
-  btnTableView.addEventListener("click", () => {
-    btnTableView.classList.add("active");
+  btnGroupedView.addEventListener("click", () => {
+    btnGroupedView.classList.add("active");
+    btnItemizedView.classList.remove("active");
     btnJsonView.classList.remove("active");
-    registryMode = "table";
+    registryMode = "grouped";
     tableViewContainer.style.display = "block";
+    itemizedViewContainer.style.display = "none";
     jsonViewContainer.style.display = "none";
     renderTable();
+    updateResultsCount();
+  });
+
+  btnItemizedView.addEventListener("click", () => {
+    btnItemizedView.classList.add("active");
+    btnGroupedView.classList.remove("active");
+    btnJsonView.classList.remove("active");
+    registryMode = "itemized";
+    tableViewContainer.style.display = "none";
+    itemizedViewContainer.style.display = "block";
+    jsonViewContainer.style.display = "none";
+    renderItemizedTable();
+    updateResultsCount();
   });
 
   btnJsonView.addEventListener("click", () => {
     btnJsonView.classList.add("active");
-    btnTableView.classList.remove("active");
+    btnGroupedView.classList.remove("active");
+    btnItemizedView.classList.remove("active");
     registryMode = "json";
     tableViewContainer.style.display = "none";
+    itemizedViewContainer.style.display = "none";
     jsonViewContainer.style.display = "block";
     renderJsonView();
+    updateResultsCount();
+  });
+
+  // Handle collapsible JSON clicks (event delegation on jsonViewerBlock)
+  jsonViewerBlock.addEventListener("click", (e) => {
+    const toggleBtn = e.target.closest(".json-toggle-btn");
+    if (!toggleBtn) return;
+
+    const wrapper = toggleBtn.closest(".json-collapsible-wrapper");
+    if (!wrapper) return;
+
+    const block = wrapper.querySelector(".json-collapsible-block");
+    const collapsedText = wrapper.querySelector(".json-collapsed-text");
+
+    if (block && collapsedText) {
+      const isCollapsed = block.classList.toggle("collapsed");
+      toggleBtn.classList.toggle("collapsed", isCollapsed);
+      if (isCollapsed) {
+        collapsedText.style.display = "inline";
+        toggleBtn.innerText = "▶";
+      } else {
+        collapsedText.style.display = "none";
+        toggleBtn.innerText = "▼";
+      }
+    }
   });
 
   btnCopyJson.addEventListener("click", () => {
     const enhanced = filteredTransactions.map((tx) => {
-      const isRefund = tx.amount < 0;
+      const isRefund = tx.paymentAmount < 0;
       let displayItems = tx.items || [];
 
       if (isRefund && displayItems.length > 0) {
         displayItems = getRefundItems(
           displayItems,
-          tx.summary?.itemsRefund ?? tx.amount,
+          tx.summary?.refundSubtotal ?? tx.paymentAmount,
         ).map((item) => ({
           ...item,
           price: -Math.abs(item.price),
@@ -196,11 +242,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tx.summary) {
           if (isRefund) {
             const diff =
-              (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0);
+              (tx.summary.refundTotal ?? 0) - (tx.summary.refundSubtotal ?? 0);
             shippingAndTax = -Math.abs(diff);
           } else {
             const diff =
-              (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0);
+              (tx.summary.orderTotal ?? 0) - (tx.summary.orderSubtotal ?? 0);
             shippingAndTax = Math.abs(diff);
           }
         } else {
@@ -208,7 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
             (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
             0,
           );
-          const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
+          const diff = Math.abs(tx.paymentAmount) - Math.abs(subtotalSum);
           shippingAndTax = isRefund ? -Math.abs(diff) : Math.abs(diff);
         }
         shippingAndTax = parseFloat(shippingAndTax.toFixed(2));
@@ -326,7 +372,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 5. Data Exporters Wrapper Functions
   function exportToCSV() {
-    exportToCSVEngine(filteredTransactions);
+    const mode = registryMode === "itemized" ? "line-item" : "transaction";
+    exportToCSVEngine(filteredTransactions, mode);
   }
 
   function exportToJSON() {
@@ -364,8 +411,10 @@ document.addEventListener("DOMContentLoaded", () => {
     calculateKPIs();
     renderChart();
     updateHeaderUI();
-    if (registryMode === "table") {
+    if (registryMode === "grouped") {
       renderTable();
+    } else if (registryMode === "itemized") {
+      renderItemizedTable();
     } else {
       renderJsonView();
     }
@@ -392,7 +441,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     filteredTransactions = allTransactions.filter((tx) => {
       // 1. Transaction Category Toggles
-      const isRefund = tx.amount < 0;
+      const isRefund = tx.paymentAmount < 0;
       if (isRefund && !showRefunds) return false;
       if (!isRefund && !showOrders) return false;
 
@@ -426,7 +475,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // 5. Price range
       if (minVal !== null || maxVal !== null) {
-        const absAmount = Math.abs(tx.amount);
+        const absAmount = Math.abs(tx.paymentAmount);
         if (minVal !== null && absAmount < minVal) return false;
         if (maxVal !== null && absAmount > maxVal) return false;
       }
@@ -441,7 +490,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sortField === "date") {
         comparison = new Date(a.date) - new Date(b.date);
       } else if (sortField === "amount") {
-        comparison = a.amount - b.amount;
+        comparison = a.paymentAmount - b.paymentAmount;
       } else if (sortField === "orderId") {
         comparison = (a.orderId || "").localeCompare(b.orderId || "");
       } else if (sortField === "description") {
@@ -460,17 +509,18 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       } else if (sortField === "shippingAndTax") {
         const getShippingAndTax = (tx) => {
-          const isRefund = tx.amount < 0;
+          const isRefund = tx.paymentAmount < 0;
           const displayItems = tx.items || [];
           if (displayItems.length === 0) return 0;
           if (tx.summary) {
             if (isRefund) {
               return -Math.abs(
-                (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0),
+                (tx.summary.refundTotal ?? 0) -
+                  (tx.summary.refundSubtotal ?? 0),
               );
             } else {
               return Math.abs(
-                (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0),
+                (tx.summary.orderTotal ?? 0) - (tx.summary.orderSubtotal ?? 0),
               );
             }
           } else {
@@ -478,7 +528,7 @@ document.addEventListener("DOMContentLoaded", () => {
               (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
               0,
             );
-            const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
+            const diff = Math.abs(tx.paymentAmount) - Math.abs(subtotalSum);
             return isRefund ? -Math.abs(diff) : Math.abs(diff);
           }
         };
@@ -488,7 +538,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return sortDir === "asc" ? comparison : -comparison;
     });
 
-    resultsCount.innerText = `Showing ${filteredTransactions.length} matching records`;
+    updateResultsCount();
   }
 
   /**
@@ -515,12 +565,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const purchaseAmounts = [];
 
     filteredTransactions.forEach((tx) => {
-      const isRefund = tx.amount < 0;
+      const isRefund = tx.paymentAmount < 0;
       if (isRefund) {
-        refundsSum += Math.abs(tx.amount);
+        refundsSum += Math.abs(tx.paymentAmount);
       } else {
-        purchasesSum += tx.amount;
-        purchaseAmounts.push(tx.amount);
+        purchasesSum += tx.paymentAmount;
+        purchaseAmounts.push(tx.paymentAmount);
       }
 
       if (tx.items && tx.items.length > 0) {
@@ -559,7 +609,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const monthlyGroups = {};
     filteredTransactions.forEach((tx) => {
-      const isRefund = tx.amount < 0;
+      const isRefund = tx.paymentAmount < 0;
       if (isRefund) return;
 
       const date = new Date(tx.date);
@@ -567,7 +617,8 @@ document.addEventListener("DOMContentLoaded", () => {
         month: "short",
         year: "numeric",
       });
-      monthlyGroups[monthKey] = (monthlyGroups[monthKey] || 0) + tx.amount;
+      monthlyGroups[monthKey] =
+        (monthlyGroups[monthKey] || 0) + tx.paymentAmount;
     });
 
     let topMonthName = "N/A";
@@ -622,12 +673,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     filteredTransactions.forEach((tx) => {
-      const isRefund = tx.amount < 0;
+      const isRefund = tx.paymentAmount < 0;
       let displayItems = tx.items || [];
       if (isRefund && displayItems.length > 0) {
         displayItems = getRefundItems(
           displayItems,
-          tx.summary?.itemsRefund ?? tx.amount,
+          tx.summary?.refundSubtotal ?? tx.paymentAmount,
         ).map((item) => ({
           ...item,
           price: -Math.abs(item.price),
@@ -652,15 +703,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tx.summary) {
           if (isRefund) {
             const diff =
-              (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0);
+              (tx.summary.refundTotal ?? 0) - (tx.summary.refundSubtotal ?? 0);
             shippingAndTaxVal = -Math.abs(diff);
           } else {
             const diff =
-              (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0);
+              (tx.summary.orderTotal ?? 0) - (tx.summary.orderSubtotal ?? 0);
             shippingAndTaxVal = Math.abs(diff);
           }
         } else {
-          const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
+          const diff = Math.abs(tx.paymentAmount) - Math.abs(subtotalSum);
           shippingAndTaxVal = isRefund ? -Math.abs(diff) : Math.abs(diff);
         }
         shippingAndTaxVal = parseFloat(shippingAndTaxVal.toFixed(2));
@@ -684,7 +735,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ${hasItems ? (isRefund && shippingAndTaxVal !== 0 ? `+${formatCurrency(Math.abs(shippingAndTaxVal))}` : formatCurrency(shippingAndTaxVal)) : "—"}
         </td>
         <td class="text-right amount-col ${isRefund ? "refund" : ""}">
-          ${isRefund ? `+${formatCurrency(Math.abs(tx.amount))}` : formatCurrency(tx.amount)}
+          ${isRefund ? `+${formatCurrency(Math.abs(tx.paymentAmount))}` : formatCurrency(tx.paymentAmount)}
         </td>
       `;
 
@@ -710,6 +761,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="item-info">
                 <h5>${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" class="item-title-link">${escapeHtml(item.title)}</a>` : escapeHtml(item.title)}</h5>
                 <p>Sold by: <strong>${escapeHtml(item.seller || "Amazon.com")}</strong></p>
+                <p>ASIN: <strong>${escapeHtml(item.asin || "N/A")}</strong></p>
               </div>
               <div class="item-financials">
                 <span class="price">${formatCurrency(item.price)}</span>
@@ -724,13 +776,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tx.summary) {
           if (isRefund) {
             receiptDiff =
-              (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0);
+              (tx.summary.refundTotal ?? 0) - (tx.summary.refundSubtotal ?? 0);
           } else {
             receiptDiff =
-              (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0);
+              (tx.summary.orderTotal ?? 0) - (tx.summary.orderSubtotal ?? 0);
           }
         } else {
-          receiptDiff = Math.abs(tx.amount) - Math.abs(subtotalSum);
+          receiptDiff = Math.abs(tx.paymentAmount) - Math.abs(subtotalSum);
         }
       } else {
         itemsListHtml = `
@@ -738,11 +790,11 @@ document.addEventListener("DOMContentLoaded", () => {
             <p style="color: var(--text-dark); font-size:12px;">Order details have not been fetched for this transaction. Run analysis with 'Fetch Itemized Details' enabled.</p>
           </div>
         `;
-        subtotalSum = Math.abs(tx.amount);
+        subtotalSum = Math.abs(tx.paymentAmount);
         receiptDiff = 0;
       }
 
-      let invoiceUrl = tx.detailsLink;
+      let invoiceUrl = tx.orderDetailsUrl;
       if (!invoiceUrl && tx.orderId) {
         const descLower = (tx.description || "").toLowerCase();
         const isGrocery =
@@ -797,7 +849,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 <div class="receipt-row total">
                   <span>${isRefund ? "Refund Issued" : "Total Amount Paid"}</span>
-                  <span>${formatCurrency(Math.abs(tx.amount))}</span>
+                  <span>${formatCurrency(Math.abs(tx.paymentAmount))}</span>
                 </div>
               </div>
             </div>
@@ -836,13 +888,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const enhancedTransactions = filteredTransactions.map((tx) => {
-      const isRefund = tx.amount < 0;
+      const isRefund = tx.paymentAmount < 0;
       let displayItems = tx.items || [];
 
       if (isRefund && displayItems.length > 0) {
         displayItems = getRefundItems(
           displayItems,
-          tx.summary?.itemsRefund ?? tx.amount,
+          tx.summary?.refundSubtotal ?? tx.paymentAmount,
         ).map((item) => ({
           ...item,
           price: -Math.abs(item.price),
@@ -854,11 +906,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tx.summary) {
           if (isRefund) {
             const diff =
-              (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0);
+              (tx.summary.refundTotal ?? 0) - (tx.summary.refundSubtotal ?? 0);
             shippingAndTax = -Math.abs(diff);
           } else {
             const diff =
-              (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0);
+              (tx.summary.orderTotal ?? 0) - (tx.summary.orderSubtotal ?? 0);
             shippingAndTax = Math.abs(diff);
           }
         } else {
@@ -866,7 +918,7 @@ document.addEventListener("DOMContentLoaded", () => {
             (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
             0,
           );
-          const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
+          const diff = Math.abs(tx.paymentAmount) - Math.abs(subtotalSum);
           shippingAndTax = isRefund ? -Math.abs(diff) : Math.abs(diff);
         }
         shippingAndTax = parseFloat(shippingAndTax.toFixed(2));
@@ -882,36 +934,353 @@ document.addEventListener("DOMContentLoaded", () => {
       return updatedTx;
     });
 
-    jsonViewerBlock.innerHTML = syntaxHighlightJson(enhancedTransactions);
+    jsonViewerBlock.innerHTML = formatJsonToHtml(enhancedTransactions);
   }
 
   /**
-   * Formats a JSON object with HTML classes for color-coded syntax highlighting.
+   * Formats a JSON object/array recursively into interactive, collapsible HTML nodes.
    */
-  function syntaxHighlightJson(jsonObj) {
-    let json = JSON.stringify(jsonObj, null, 2);
-    json = json
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-    return json.replace(
-      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
-      (match) => {
-        let cls = "number";
-        if (/^"/.test(match)) {
-          if (/:$/.test(match)) {
-            cls = "key";
+  function formatJsonToHtml(val, isLast = true) {
+    if (val === null) {
+      return `<span class="json-null">null</span>${isLast ? "" : ","}`;
+    }
+    if (typeof val === "boolean") {
+      return `<span class="json-boolean">${val}</span>${isLast ? "" : ","}`;
+    }
+    if (typeof val === "number") {
+      return `<span class="json-number">${val}</span>${isLast ? "" : ","}`;
+    }
+    if (typeof val === "string") {
+      return `<span class="json-string">"${escapeHtml(val)}"</span>${isLast ? "" : ","}`;
+    }
+    if (Array.isArray(val)) {
+      if (val.length === 0) {
+        return `<span class="json-bracket">[ ]</span>${isLast ? "" : ","}`;
+      }
+      const children = val
+        .map((item, index) => {
+          return `<div class="json-nested-item">${formatJsonToHtml(item, index === val.length - 1)}</div>`;
+        })
+        .join("");
+      const count = val.length;
+      const label = `${count} Item${count !== 1 ? "s" : ""}`;
+      return `<span class="json-collapsible-wrapper"><span class="json-toggle-btn">▼</span><span class="json-bracket">[</span><span class="json-collapsed-text" style="display: none;">${label}</span><div class="json-collapsible-block">${children}</div><span class="json-bracket">]</span>${isLast ? "" : ","}</span>`;
+    }
+    if (typeof val === "object") {
+      const keys = Object.keys(val);
+      if (keys.length === 0) {
+        return `<span class="json-bracket">{ }</span>${isLast ? "" : ","}`;
+      }
+      const children = keys
+        .map((key, index) => {
+          const keyHtml = `<span class="json-key">"${escapeHtml(key)}"</span>: `;
+          const valHtml = formatJsonToHtml(val[key], index === keys.length - 1);
+          return `<div class="json-nested-item">${keyHtml}${valHtml}</div>`;
+        })
+        .join("");
+      return `<span class="json-collapsible-wrapper"><span class="json-toggle-btn">▼</span><span class="json-bracket">{</span><span class="json-collapsed-text" style="display: none;">...</span><div class="json-collapsible-block">${children}</div><span class="json-bracket">}</span>${isLast ? "" : ","}</span>`;
+    }
+    return escapeHtml(String(val)) + (isLast ? "" : ",");
+  }
+
+  /**
+   * Flattens transactions into a list of individual items.
+   */
+  function getItemizedRows(transactions) {
+    const rows = [];
+    transactions.forEach((tx) => {
+      const isRefund = tx.paymentAmount < 0;
+      let displayItems = tx.items || [];
+
+      if (isRefund && displayItems.length > 0) {
+        displayItems = getRefundItems(
+          displayItems,
+          tx.summary?.refundSubtotal ?? tx.paymentAmount,
+        ).map((item) => ({
+          ...item,
+          price: -Math.abs(item.price),
+        }));
+      }
+
+      if (displayItems.length > 0) {
+        displayItems.forEach((item) => {
+          const total = (item.price || 0) * (item.quantity || 1);
+          rows.push({
+            date: tx.date,
+            orderId: tx.orderId || "N/A",
+            title: item.title,
+            seller: item.seller || "Amazon.com",
+            paymentMethod: tx.paymentMethod || "Account Bal",
+            price: item.price,
+            quantity: item.quantity || 1,
+            total: total,
+            url: item.url || "",
+            imageUrl: item.imageUrl || "",
+            asin: item.asin || "",
+            txId: tx.id,
+          });
+        });
+      } else {
+        // Fallback for unitemized transactions
+        rows.push({
+          date: tx.date,
+          orderId: tx.orderId || "N/A",
+          title: tx.description || "Unitemized Transaction",
+          seller: "Amazon",
+          paymentMethod: tx.paymentMethod || "Account Bal",
+          price: tx.paymentAmount,
+          quantity: 1,
+          total: tx.paymentAmount,
+          url: tx.orderDetailsUrl || "",
+          imageUrl: "",
+          asin: "",
+          txId: tx.id,
+        });
+      }
+    });
+    return rows;
+  }
+
+  /**
+   * Renders the flat list of items in the Itemized Table View.
+   */
+  function renderItemizedTable() {
+    const itemizedTableBody = document.getElementById("itemizedTableBody");
+    if (!itemizedTableBody) return;
+    itemizedTableBody.innerHTML = "";
+
+    const itemRows = getItemizedRows(filteredTransactions);
+
+    if (itemRows.length === 0) {
+      itemizedTableBody.innerHTML = `
+        <tr class="empty-state">
+          <td colspan="8">
+            <div class="empty-inner">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="13" y2="17"></line></svg>
+              <h4>No matching records</h4>
+              <p>Try resetting filters or adjusting search queries to locate items.</p>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    // Sort itemRows based on sortField
+    itemRows.sort((a, b) => {
+      let comparison = 0;
+      if (sortField === "date") {
+        comparison = new Date(a.date) - new Date(b.date);
+      } else if (sortField === "orderId") {
+        comparison = (a.orderId || "").localeCompare(b.orderId || "");
+      } else if (sortField === "itemTitle") {
+        comparison = (a.title || "").localeCompare(b.title || "");
+      } else if (sortField === "seller") {
+        comparison = (a.seller || "").localeCompare(b.seller || "");
+      } else if (sortField === "paymentMethod") {
+        comparison = (a.paymentMethod || "").localeCompare(
+          b.paymentMethod || "",
+        );
+      } else if (sortField === "price") {
+        comparison = (a.price || 0) - (b.price || 0);
+      } else if (sortField === "quantity") {
+        comparison = (a.quantity || 0) - (b.quantity || 0);
+      } else if (sortField === "total" || sortField === "amount") {
+        comparison = (a.total || 0) - (b.total || 0);
+      } else if (sortField === "description") {
+        // Fallback for sorting compatibility
+        comparison = (a.title || "").localeCompare(b.title || "");
+      } else {
+        comparison = new Date(a.date) - new Date(b.date);
+      }
+      return sortDir === "asc" ? comparison : -comparison;
+    });
+
+    itemRows.forEach((item) => {
+      const isRefund = item.total < 0;
+      const row = document.createElement("tr");
+      row.className = "tx-row";
+      row.setAttribute("data-tx-id", item.txId);
+
+      const titleHtml = escapeHtml(item.title);
+
+      row.innerHTML = `
+        <td class="date-col">${new Date(item.date).toLocaleDateString()}</td>
+        <td class="order-id-col">${item.orderId || "N/A"}</td>
+        <td class="desc-col" title="${escapeHtml(item.title)}">${titleHtml}</td>
+        <td class="pm-col">${escapeHtml(item.seller)}</td>
+        <td class="pm-col">${escapeHtml(item.paymentMethod)}</td>
+        <td class="text-right amount-col ${isRefund ? "refund" : ""}">
+          ${isRefund ? `+${formatCurrency(Math.abs(item.price))}` : formatCurrency(item.price)}
+        </td>
+        <td class="text-center pm-col">${item.quantity}</td>
+        <td class="text-right amount-col ${isRefund ? "refund" : ""}">
+          ${isRefund ? `+${formatCurrency(Math.abs(item.total))}` : formatCurrency(item.total)}
+        </td>
+      `;
+
+      // Find the parent transaction details
+      const tx = filteredTransactions.find((t) => t.id === item.txId) || {};
+      const isRefundTx = tx.paymentAmount < 0;
+      let displayItems = tx.items || [];
+      if (isRefundTx && displayItems.length > 0) {
+        displayItems = getRefundItems(
+          displayItems,
+          tx.summary?.refundSubtotal ?? tx.paymentAmount,
+        ).map((item) => ({
+          ...item,
+          price: -Math.abs(item.price),
+        }));
+      }
+      const hasItems = displayItems.length > 0;
+      let subtotalSum = 0;
+      if (hasItems) {
+        subtotalSum = displayItems.reduce(
+          (acc, i) => acc + (i.price || 0) * (i.quantity || 1),
+          0,
+        );
+      } else {
+        subtotalSum = Math.abs(tx.paymentAmount || item.total);
+      }
+
+      let shippingAndTaxVal = 0;
+      if (hasItems) {
+        if (tx.summary) {
+          if (isRefundTx) {
+            const diff =
+              (tx.summary.refundTotal ?? 0) - (tx.summary.refundSubtotal ?? 0);
+            shippingAndTaxVal = -Math.abs(diff);
           } else {
-            cls = "string";
+            const diff =
+              (tx.summary.orderTotal ?? 0) - (tx.summary.orderSubtotal ?? 0);
+            shippingAndTaxVal = Math.abs(diff);
           }
-        } else if (/true|false/.test(match)) {
-          cls = "boolean";
-        } else if (/null/.test(match)) {
-          cls = "null";
+        } else {
+          const diff =
+            Math.abs(tx.paymentAmount || item.total) - Math.abs(subtotalSum);
+          shippingAndTaxVal = isRefundTx ? -Math.abs(diff) : Math.abs(diff);
         }
-        return `<span class="json-${cls}">${match}</span>`;
-      },
-    );
+        shippingAndTaxVal = parseFloat(shippingAndTaxVal.toFixed(2));
+      }
+
+      let invoiceUrl = tx.orderDetailsUrl;
+      if (!invoiceUrl && tx.orderId) {
+        const descLower = (tx.description || "").toLowerCase();
+        const isGrocery =
+          descLower.includes("fresh") ||
+          descLower.includes("whole foods") ||
+          descLower.includes("grocery") ||
+          descLower.includes("groceries") ||
+          descLower.includes("prime now");
+        if (isGrocery) {
+          invoiceUrl = `https://www.amazon.com/uff/your-account/order-details/ref=ppx_hzod_rd_dt_b_fresh_uff_rd?_encoding=UTF8&orderID=${tx.orderId}&page=itemmod`;
+        } else if (tx.orderId.toUpperCase().startsWith("D")) {
+          invoiceUrl = `https://www.amazon.com/your-orders/order-details?orderID=${tx.orderId}`;
+        } else {
+          invoiceUrl = `https://www.amazon.com/gp/your-account/order-details?orderID=${tx.orderId}`;
+        }
+      }
+
+      const thumbHtml = item.imageUrl
+        ? `<div class="item-thumb" style="width: 60px; height: 60px; border-radius: 8px; background-color: white; display: flex; align-items: center; justify-content: center; padding: 4px; border: 1px solid var(--border-color); overflow: hidden; flex-shrink: 0;">${
+            item.url
+              ? `<a href="${escapeHtml(item.url)}" target="_blank" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;"><img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.outerHTML='<div class=\\'no-img\\'>🛒</div>'"></a>`
+              : `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.outerHTML='<div class=\\'no-img\\'>🛒</div>'">`
+          }</div>`
+        : `<div class="item-thumb" style="width: 60px; height: 60px; border-radius: 8px; background-color: white; display: flex; align-items: center; justify-content: center; padding: 4px; border: 1px solid var(--border-color); overflow: hidden; flex-shrink: 0;"><div class="no-img" style="font-size: 20px;">🛒</div></div>`;
+
+      const detailsRow = document.createElement("tr");
+      detailsRow.className = "details-row";
+      detailsRow.id = `item-details-${item.txId}-${Math.random().toString(36).substr(2, 9)}`;
+      detailsRow.innerHTML = `
+        <td colspan="8" class="details-cell">
+          <div class="items-container" style="padding: 10px 24px; display: flex !important; flex-direction: row !important; align-items: center; justify-content: space-between; gap: 20px;">
+            <!-- Left: Picture of item -->
+            ${thumbHtml}
+
+            <!-- Center: Links to Amazon -->
+            <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;">
+              <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">ASIN: ${escapeHtml(item.asin || "N/A")}</span>
+              ${
+                item.url
+                  ? `<a href="${escapeHtml(item.url)}" target="_blank" style="font-size: 12px; color: var(--primary-violet); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;">
+                <span>View Product Page</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              </a>`
+                  : ""
+              }
+              ${
+                invoiceUrl
+                  ? `<a href="${escapeHtml(invoiceUrl)}" target="_blank" style="font-size: 12px; color: var(--primary-indigo); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;">
+                <span>View Amazon Order Details</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              </a>`
+                  : `<span style="color: var(--text-muted); font-size: 11px;">No Order Link Available</span>`
+              }
+            </div>
+
+            <!-- Right: Order total info -->
+            <div class="details-receipt" style="border-top: none; padding-top: 0; margin-top: 0; width: 220px; flex-shrink: 0;">
+              <div class="receipt-summary">
+                <div class="receipt-row">
+                  <span>Order Subtotal</span>
+                  <span>${formatCurrency(Math.abs(subtotalSum))}</span>
+                </div>
+                ${
+                  Math.abs(shippingAndTaxVal) > 0.02
+                    ? `
+                <div class="receipt-row">
+                  <span>Order Shipping & Tax</span>
+                  <span>${formatCurrency(Math.abs(shippingAndTaxVal))}</span>
+                </div>
+                `
+                    : ""
+                }
+                <div class="receipt-row total">
+                  <span>${isRefundTx ? "Order Refund Issued" : "Order Total Paid"}</span>
+                  <span>${formatCurrency(Math.abs(tx.paymentAmount || item.total))}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </td>
+      `;
+
+      row.addEventListener("click", (e) => {
+        if (e.target.closest("a")) return;
+
+        const isCurrentlyExpanded = row.classList.contains("expanded");
+
+        itemizedTableBody.querySelectorAll(".tx-row.expanded").forEach((r) => {
+          r.classList.remove("expanded");
+        });
+        itemizedTableBody
+          .querySelectorAll(".details-row.show")
+          .forEach((dr) => {
+            dr.classList.remove("show");
+          });
+
+        if (!isCurrentlyExpanded) {
+          row.classList.add("expanded");
+          detailsRow.classList.add("show");
+        }
+      });
+
+      itemizedTableBody.appendChild(row);
+      itemizedTableBody.appendChild(detailsRow);
+    });
+  }
+
+  /**
+   * Updates the results badge count based on active view.
+   */
+  function updateResultsCount() {
+    if (registryMode === "itemized") {
+      const itemRows = getItemizedRows(filteredTransactions);
+      resultsCount.innerText = `Showing ${itemRows.length} matching records`;
+    } else {
+      resultsCount.innerText = `Showing ${filteredTransactions.length} matching transactions`;
+    }
   }
 
   /**

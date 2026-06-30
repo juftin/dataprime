@@ -292,7 +292,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateBadge("Done", "completed");
 
       // Compute total spent
-      const total = list.reduce((acc, t) => acc + t.amount, 0);
+      const total = list.reduce((acc, t) => acc + t.paymentAmount, 0);
       sumTotalSpend.innerText = formatCurrency(total);
       sumTxCount.innerText = list.length;
     } else if (status === "ERROR") {

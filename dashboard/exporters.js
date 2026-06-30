@@ -182,103 +182,218 @@ export function getRefundItems(items, refundAmount) {
 /**
  * Generates and downloads a CSV export of the currently filtered transactions dataset.
  * @param {Array<Object>} transactions - Transactions list to export.
+ * @param {string} [mode="line-item"] - Export format mode: 'line-item' or 'transaction'.
  */
-export function exportToCSV(transactions) {
+export function exportToCSV(transactions, mode = "line-item") {
   if (!transactions || transactions.length === 0) return;
 
-  // Build Headers
-  let csvContent =
-    "Date,Order ID,Description,Card/Payment Method,Amount Paid,Shipping & Tax,Item Title,Item Unit Price,Item Qty,Seller,Item Link\n";
+  let csvContent = "";
 
-  transactions.forEach((tx) => {
-    const isRefund = tx.amount < 0;
-    const baseAmt = isRefund ? -Math.abs(tx.amount) : tx.amount;
+  if (mode === "transaction") {
+    // Build Headers for Transaction-Level
+    csvContent =
+      "id,date,orderId,description,paymentMethod,paymentAmount,orderSubtotal,shippingHandling,orderTax,orderTotal,refundSubtotal,refundTax,refundTotal,items\n";
 
-    const escapedDesc = `"${tx.description.replace(/"/g, '""')}"`;
-    const escapedPm = `"${(tx.paymentMethod || "Amazon Bal").replace(/"/g, '""')}"`;
+    transactions.forEach((tx) => {
+      const isRefund = tx.paymentAmount < 0;
+      const baseAmt = isRefund ? -Math.abs(tx.paymentAmount) : tx.paymentAmount;
 
-    let displayItems = tx.items || [];
-    if (isRefund && displayItems.length > 0) {
-      displayItems = getRefundItems(
-        displayItems,
-        tx.summary?.itemsRefund ?? tx.amount,
-      ).map((item) => ({
-        ...item,
-        price: -Math.abs(item.price),
-      }));
-    }
+      const escapedDesc = `"${tx.description.replace(/"/g, '""')}"`;
+      const escapedPm = `"${(tx.paymentMethod || "Amazon Bal").replace(/"/g, '""')}"`;
 
-    // Compute shipping & tax for this transaction
-    let shippingAndTax = 0;
-    if (displayItems.length > 0) {
-      if (tx.summary) {
-        if (isRefund) {
-          const diff =
-            (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0);
-          shippingAndTax = -Math.abs(diff);
-        } else {
-          const diff =
-            (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0);
-          shippingAndTax = Math.abs(diff);
-        }
-      } else {
-        const subtotalSum = displayItems.reduce(
-          (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
-          0,
-        );
-        const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
-        shippingAndTax = isRefund ? -Math.abs(diff) : Math.abs(diff);
+      let displayItems = tx.items || [];
+      if (isRefund && displayItems.length > 0) {
+        displayItems = getRefundItems(
+          displayItems,
+          tx.summary?.refundSubtotal ?? tx.paymentAmount,
+        ).map((item) => ({
+          ...item,
+          price: -Math.abs(item.price),
+        }));
       }
-      // Round to 2 decimals
-      shippingAndTax = parseFloat(shippingAndTax.toFixed(2));
-    }
 
-    if (displayItems.length > 0) {
-      displayItems.forEach((item) => {
-        const escapedTitle = `"${item.title.replace(/"/g, '""')}"`;
-        const escapedSeller = `"${(item.seller || "Amazon").replace(/"/g, '""')}"`;
+      // Compute shipping & tax for this transaction
+      let shippingAndTax = 0;
+      if (displayItems.length > 0) {
+        if (tx.summary) {
+          if (isRefund) {
+            const diff =
+              (tx.summary.refundTotal ?? 0) - (tx.summary.refundSubtotal ?? 0);
+            shippingAndTax = -Math.abs(diff);
+          } else {
+            const diff =
+              (tx.summary.orderTotal ?? 0) - (tx.summary.orderSubtotal ?? 0);
+            shippingAndTax = Math.abs(diff);
+          }
+        } else {
+          const subtotalSum = displayItems.reduce(
+            (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
+            0,
+          );
+          const diff = Math.abs(tx.paymentAmount) - Math.abs(subtotalSum);
+          shippingAndTax = isRefund ? -Math.abs(diff) : Math.abs(diff);
+        }
+        // Round to 2 decimals
+        shippingAndTax = parseFloat(shippingAndTax.toFixed(2));
+      }
+
+      let itemsString = "";
+      if (displayItems.length > 0) {
+        itemsString = displayItems
+          .map((item) => {
+            const qty = item.quantity || 1;
+            return qty > 1 ? `${item.title} (x${qty})` : item.title;
+          })
+          .join("; ");
+      } else {
+        itemsString = "Unitemized Transaction";
+      }
+
+      const escapedItems = `"${itemsString.replace(/"/g, '""')}"`;
+
+      const summary = tx.summary || {};
+      const orderSubtotal =
+        summary.orderSubtotal !== undefined ? summary.orderSubtotal : "";
+      const shippingHandlingVal =
+        summary.shippingHandling !== undefined
+          ? summary.shippingHandling
+          : tx.paymentAmount >= 0
+            ? shippingAndTax
+            : "";
+      const orderTax = summary.orderTax !== undefined ? summary.orderTax : "";
+      const orderTotalVal =
+        summary.orderTotal !== undefined
+          ? summary.orderTotal
+          : tx.paymentAmount >= 0
+            ? baseAmt
+            : "";
+      const refundSubtotal =
+        summary.refundSubtotal !== undefined ? summary.refundSubtotal : "";
+      const refundTax =
+        summary.refundTax !== undefined ? summary.refundTax : "";
+      const refundTotalVal =
+        summary.refundTotal !== undefined
+          ? summary.refundTotal
+          : tx.paymentAmount < 0
+            ? baseAmt
+            : "";
+
+      const rowData = [
+        tx.id || "",
+        tx.date,
+        tx.orderId || "N/A",
+        escapedDesc,
+        escapedPm,
+        baseAmt,
+        orderSubtotal,
+        shippingHandlingVal,
+        orderTax,
+        orderTotalVal,
+        refundSubtotal,
+        refundTax,
+        refundTotalVal,
+        escapedItems,
+      ].join(",");
+      csvContent += rowData + "\n";
+    });
+  } else {
+    // Build Headers for Line-Item Level
+    csvContent =
+      "date,orderId,description,paymentMethod,paymentAmount,shippingHandling,title,price,quantity,seller,url,asin\n";
+
+    transactions.forEach((tx) => {
+      const isRefund = tx.paymentAmount < 0;
+      const baseAmt = isRefund ? -Math.abs(tx.paymentAmount) : tx.paymentAmount;
+
+      const escapedDesc = `"${tx.description.replace(/"/g, '""')}"`;
+      const escapedPm = `"${(tx.paymentMethod || "Amazon Bal").replace(/"/g, '""')}"`;
+
+      let displayItems = tx.items || [];
+      if (isRefund && displayItems.length > 0) {
+        displayItems = getRefundItems(
+          displayItems,
+          tx.summary?.refundSubtotal ?? tx.paymentAmount,
+        ).map((item) => ({
+          ...item,
+          price: -Math.abs(item.price),
+        }));
+      }
+
+      // Compute shipping & tax for this transaction
+      let shippingAndTax = 0;
+      if (displayItems.length > 0) {
+        if (tx.summary) {
+          if (isRefund) {
+            const diff =
+              (tx.summary.refundTotal ?? 0) - (tx.summary.refundSubtotal ?? 0);
+            shippingAndTax = -Math.abs(diff);
+          } else {
+            const diff =
+              (tx.summary.orderTotal ?? 0) - (tx.summary.orderSubtotal ?? 0);
+            shippingAndTax = Math.abs(diff);
+          }
+        } else {
+          const subtotalSum = displayItems.reduce(
+            (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
+            0,
+          );
+          const diff = Math.abs(tx.paymentAmount) - Math.abs(subtotalSum);
+          shippingAndTax = isRefund ? -Math.abs(diff) : Math.abs(diff);
+        }
+        // Round to 2 decimals
+        shippingAndTax = parseFloat(shippingAndTax.toFixed(2));
+      }
+
+      if (displayItems.length > 0) {
+        displayItems.forEach((item) => {
+          const escapedTitle = `"${item.title.replace(/"/g, '""')}"`;
+          const escapedSeller = `"${(item.seller || "Amazon").replace(/"/g, '""')}"`;
+          const rowData = [
+            tx.date,
+            tx.orderId || "N/A",
+            escapedDesc,
+            escapedPm,
+            baseAmt,
+            shippingAndTax,
+            escapedTitle,
+            item.price,
+            item.quantity,
+            escapedSeller,
+            item.url || "",
+            item.asin || "",
+          ].join(",");
+          csvContent += rowData + "\n";
+        });
+      } else {
+        // Non-itemized flat row fallback
         const rowData = [
           tx.date,
           tx.orderId || "N/A",
           escapedDesc,
           escapedPm,
           baseAmt,
-          shippingAndTax,
-          escapedTitle,
-          item.price,
-          item.quantity,
-          escapedSeller,
-          item.url || "",
+          0.0,
+          "Unitemized Transaction",
+          baseAmt,
+          1,
+          "Amazon",
+          tx.orderDetailsUrl || "",
+          "",
         ].join(",");
         csvContent += rowData + "\n";
-      });
-    } else {
-      // Non-itemized flat row fallback
-      const rowData = [
-        tx.date,
-        tx.orderId || "N/A",
-        escapedDesc,
-        escapedPm,
-        baseAmt,
-        0.0,
-        "Unitemized Transaction",
-        baseAmt,
-        1,
-        "Amazon",
-        tx.detailsLink || "",
-      ].join(",");
-      csvContent += rowData + "\n";
-    }
-  });
+      }
+    });
+  }
 
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute(
-    "download",
-    `DataPrime_Spending_Export_${new Date().toISOString().split("T")[0]}.csv`,
-  );
+  const filename =
+    mode === "transaction"
+      ? "DataPrime_Grouped_Export.csv"
+      : "DataPrime_Itemized_Export.csv";
+  link.setAttribute("download", filename);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -293,13 +408,13 @@ export function exportToJSON(transactions) {
   if (!transactions || transactions.length === 0) return;
 
   const exportedTransactions = transactions.map((tx) => {
-    const isRefund = tx.amount < 0;
+    const isRefund = tx.paymentAmount < 0;
     let displayItems = tx.items || [];
 
     if (isRefund && displayItems.length > 0) {
       displayItems = getRefundItems(
         displayItems,
-        tx.summary?.itemsRefund ?? tx.amount,
+        tx.summary?.refundSubtotal ?? tx.paymentAmount,
       ).map((item) => ({
         ...item,
         price: -Math.abs(item.price),
@@ -311,11 +426,11 @@ export function exportToJSON(transactions) {
       if (tx.summary) {
         if (isRefund) {
           const diff =
-            (tx.summary.refundTotal ?? 0) - (tx.summary.itemsRefund ?? 0);
+            (tx.summary.refundTotal ?? 0) - (tx.summary.refundSubtotal ?? 0);
           shippingAndTax = -Math.abs(diff);
         } else {
           const diff =
-            (tx.summary.grandTotal ?? 0) - (tx.summary.itemSubtotal ?? 0);
+            (tx.summary.orderTotal ?? 0) - (tx.summary.orderSubtotal ?? 0);
           shippingAndTax = Math.abs(diff);
         }
       } else {
@@ -323,7 +438,7 @@ export function exportToJSON(transactions) {
           (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
           0,
         );
-        const diff = Math.abs(tx.amount) - Math.abs(subtotalSum);
+        const diff = Math.abs(tx.paymentAmount) - Math.abs(subtotalSum);
         shippingAndTax = isRefund ? -Math.abs(diff) : Math.abs(diff);
       }
       // Round to 2 decimals
@@ -346,10 +461,7 @@ export function exportToJSON(transactions) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute(
-    "download",
-    `DataPrime_Analytics_Export_${new Date().toISOString().split("T")[0]}.json`,
-  );
+  link.setAttribute("download", "DataPrime_JSON_Export.json");
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

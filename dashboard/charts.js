@@ -100,12 +100,12 @@ export function renderChart(
       });
 
       if (monthlyData[key]) {
-        if (tx.amount < 0) {
-          monthlyData[key].refunds += Math.abs(tx.amount);
-          monthlyData[key].net -= Math.abs(tx.amount);
+        if (tx.paymentAmount < 0) {
+          monthlyData[key].refunds += Math.abs(tx.paymentAmount);
+          monthlyData[key].net -= Math.abs(tx.paymentAmount);
         } else {
-          monthlyData[key].purchases += tx.amount;
-          monthlyData[key].net += tx.amount;
+          monthlyData[key].purchases += tx.paymentAmount;
+          monthlyData[key].net += tx.paymentAmount;
         }
       }
     });
@@ -173,18 +173,20 @@ export function renderChart(
   } else {
     // MODE 2: Cumulative Sum (Line Chart representation)
     const cumulativeData = [...filteredTransactions]
-      .filter((t) => (includeReturns ? t.amount !== 0 : t.amount > 0))
+      .filter((t) =>
+        includeReturns ? t.paymentAmount !== 0 : t.paymentAmount > 0,
+      )
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     if (cumulativeData.length === 0) return;
 
     let runningTotal = 0;
     const points = cumulativeData.map((tx) => {
-      runningTotal += tx.amount;
+      runningTotal += tx.paymentAmount;
       return {
         date: tx.date,
         orderId: tx.id,
-        amount: tx.amount,
+        amount: tx.paymentAmount,
         cumulative: runningTotal,
       };
     });

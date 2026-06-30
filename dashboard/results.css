@@ -1153,6 +1153,52 @@ svg text {
   color: #9ca3af;
 }
 
+.json-toggle-btn {
+  display: inline-block;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-dark);
+  font-size: 10px;
+  margin-right: 4px;
+  width: 12px;
+  text-align: center;
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease;
+}
+.json-toggle-btn:hover {
+  color: var(--text-main);
+}
+.json-toggle-btn.collapsed {
+  color: var(--primary-indigo);
+}
+.json-collapsible-block {
+  display: block;
+  margin-left: 20px;
+  border-left: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-left: 12px;
+}
+.json-collapsible-block.collapsed {
+  display: none;
+}
+.json-nested-item {
+  line-height: 1.6;
+}
+.json-collapsed-text {
+  color: var(--text-dark);
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin: 0 4px;
+  border: 1px solid var(--border-color);
+  user-select: none;
+}
+.json-bracket {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
 /* Sortable Table Headers */
 .dashboard-table th.sortable {
   cursor: pointer;
@@ -1241,4 +1287,36 @@ svg text {
   height: 100%;
   border: none;
   background: transparent;
+}
+
+/* Sidebar custom select dropdown style */
+.sidebar-select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.sidebar-select:focus {
+  border-color: var(--primary-indigo);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Highlight glow animation for selected transaction rows */
+@keyframes rowGlow {
+  0% {
+    background-color: rgba(99, 102, 241, 0.25);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.row-highlight {
+  animation: rowGlow 2.5s ease-out;
 }

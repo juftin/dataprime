@@ -654,7 +654,7 @@ input:checked + .slider:before {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: conic-gradient(#8b5cf6 0deg 180deg, #ec4899 180deg 360deg);
+  background: conic-gradient(#8b5cf6 0deg 180deg, #f59e0b 180deg 360deg);
   animation: spin 1.2s linear infinite;
   display: inline-block;
   filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
