@@ -55,8 +55,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const kpiItemsSub = document.getElementById("kpiItemsSub");
   const kpiAvgOrder = document.getElementById("kpiAvgOrder");
   const kpiAvgSub = document.getElementById("kpiAvgSub");
-  const kpiTopMonth = document.getElementById("kpiTopMonth");
-  const kpiTopMonthSub = document.getElementById("kpiTopMonthSub");
   const kpiLastAnalysis = document.getElementById("kpiLastAnalysis");
   const kpiAnalysisSub = document.getElementById("kpiAnalysisSub");
 
@@ -678,8 +676,6 @@ document.addEventListener("DOMContentLoaded", () => {
       kpiItemsSub.innerText = "Avg 0.0 items/order";
       kpiAvgOrder.innerText = "$0.00";
       kpiAvgSub.innerText = "Median $0.00";
-      kpiTopMonth.innerText = "N/A";
-      kpiTopMonthSub.innerText = "Peak $0.00";
       return;
     }
 
@@ -739,34 +735,6 @@ document.addEventListener("DOMContentLoaded", () => {
           : (purchaseAmounts[mid - 1] + purchaseAmounts[mid]) / 2;
     }
     kpiAvgSub.innerText = `Median ${formatCurrency(median)}`;
-
-    const monthlyGroups = {};
-    filteredTransactions.forEach((tx) => {
-      const isRefund = tx.paymentAmount < 0;
-      if (isRefund) return;
-
-      const date = new Date(tx.date);
-      const monthKey = date.toLocaleString("default", {
-        month: "short",
-        year: "numeric",
-      });
-      monthlyGroups[monthKey] =
-        (monthlyGroups[monthKey] || 0) + tx.paymentAmount;
-    });
-
-    let topMonthName = "N/A";
-    let topMonthMax = 0;
-
-    Object.entries(monthlyGroups).forEach(([month, sum]) => {
-      if (sum > topMonthMax) {
-        topMonthMax = sum;
-        topMonthName = month;
-      }
-    });
-
-    kpiTopMonth.innerText = topMonthName;
-    kpiTopMonthSub.innerText =
-      topMonthMax > 0 ? `Peak ${formatCurrency(topMonthMax)}` : "No purchases";
   }
 
   /**
