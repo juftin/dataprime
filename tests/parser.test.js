@@ -117,11 +117,13 @@ test("2. parseOrderDetailsHtmlRegexFallback() - Grocery Order Details Parsing", 
   assert.strictEqual(items[0].price, 6.99);
   assert.strictEqual(items[0].quantity, 2);
   assert.strictEqual(items[0].seller, "Whole Foods Market");
+  assert.strictEqual(items[0].asin, "B078123456");
 
   assert.strictEqual(items[1].title, "Fresh Sliced Turkey Breast, 16oz");
   assert.strictEqual(items[1].price, 8.49);
   assert.strictEqual(items[1].quantity, 1);
   assert.strictEqual(items[1].seller, "Whole Foods Market");
+  assert.strictEqual(items[1].asin, "B078654321");
 });
 
 test("3. parseTransactionElement() - Standard Transactions parsing", () => {
@@ -152,7 +154,7 @@ test("3. parseTransactionElement() - Standard Transactions parsing", () => {
   assert.ok(parsed);
   assert.strictEqual(parsed.orderId, "114-9876543-2109876");
   assert.strictEqual(parsed.date, "2026-01-25");
-  assert.strictEqual(parsed.amount, 45.5); // Charges should be stored as positive amounts
+  assert.strictEqual(parsed.paymentAmount, 45.5); // Charges should be stored as positive amounts
   assert.strictEqual(parsed.paymentMethod, "Visa (*9876)");
   assert.strictEqual(parsed.id, "114-9876543-2109876-2026-01-25-45.50-0");
 });
@@ -182,8 +184,8 @@ test("4. parseTransactionElement() - Refund Transactions parsing", () => {
   const parsed = parseTransactionElement(mockEl, 0);
 
   assert.ok(parsed);
-  assert.strictEqual(parsed.amount, -15.2); // Refunds should be stored as negative amounts
-  assert.strictEqual(parsed.id, "114-9876543-2109876-2026-02-12-15.20-0");
+  assert.strictEqual(parsed.paymentAmount, -15.2); // Refunds should be stored as negative amounts
+  assert.strictEqual(parsed.id, "114-9876543-2109876-2026-02-12-15.20-0-R");
 });
 
 test("5. parseTransactionElement() - Split charges stateful sequence ID tracking", () => {
@@ -473,15 +475,15 @@ test("12. parseTransactionElement() - Grocery order URL redirection overrides", 
 
   assert.ok(parsed);
   // Standard link MUST be dynamically overridden and rewritten to a Fresh/Whole Foods UFF link
-  assert.ok(parsed.detailsLink.includes("/uff/your-account/order-details"));
-  assert.ok(parsed.detailsLink.includes("page=itemmod"));
-  assert.ok(parsed.detailsLink.includes("orderID=112-8888888-8888888"));
+  assert.ok(parsed.orderDetailsUrl.includes("/uff/your-account/order-details"));
+  assert.ok(parsed.orderDetailsUrl.includes("page=itemmod"));
+  assert.ok(parsed.orderDetailsUrl.includes("orderID=112-8888888-8888888"));
 });
 
 test("13. startScrapingLoop loop protection - Duplicate page content hash matching", () => {
   const pageTransactions = [
-    { id: "tx-1-0", baseKey: "tx-1", date: "2026-06-01", amount: 10.0 },
-    { id: "tx-2-0", baseKey: "tx-2", date: "2026-06-01", amount: 20.0 },
+    { id: "tx-1-0", baseKey: "tx-1", date: "2026-06-01", paymentAmount: 10.0 },
+    { id: "tx-2-0", baseKey: "tx-2", date: "2026-06-01", paymentAmount: 20.0 },
   ];
 
   // Case A: Page transaction baseKeys match previous page baseKeys completely (indicating a pagination failure)
@@ -578,7 +580,9 @@ test("16. parseOrderDetailsHtmlRegexFallback() - Multiple digital synthetic ASIN
   assert.strictEqual(items.length, 2);
   // Verify separate synthetic ASIN IDs are generated sequentially (digital-orderId-0, digital-orderId-1)
   assert.strictEqual(items[0].url.includes("B001"), true);
+  assert.strictEqual(items[0].asin, "digital-D01-99999-0");
   assert.strictEqual(items[1].url.includes("B002"), true);
+  assert.strictEqual(items[1].asin, "digital-D01-99999-1");
 });
 
 test("17. startScrapingLoop() - Date range accumulation boundary logic", () => {
@@ -588,9 +592,9 @@ test("17. startScrapingLoop() - Date range accumulation boundary logic", () => {
   scrapingState.startDate = "2026-05-10";
   scrapingState.endDate = "2026-05-20";
 
-  const t1 = { id: "tx-1", date: "2026-05-22", amount: 10.0 }; // Case A: Too new (> endDate)
-  const t2 = { id: "tx-2", date: "2026-05-15", amount: 15.0 }; // Case B: In-range (added!)
-  const t3 = { id: "tx-3", date: "2026-05-05", amount: 20.0 }; // Case C: Too old (< startDate, triggers finish)
+  const t1 = { id: "tx-1", date: "2026-05-22", paymentAmount: 10.0 }; // Case A: Too new (> endDate)
+  const t2 = { id: "tx-2", date: "2026-05-15", paymentAmount: 15.0 }; // Case B: In-range (added!)
+  const t3 = { id: "tx-3", date: "2026-05-05", paymentAmount: 20.0 }; // Case C: Too old (< startDate, triggers finish)
 
   const scrapedMockList = [t1, t2, t3];
   let outOfRangeStartReached = false;
@@ -729,7 +733,7 @@ test("19. parseTransactionElement() - Current-year transaction dates parsing (no
     .toISOString()
     .split("T")[0];
   assert.strictEqual(parsed.date, expectedDate);
-  assert.strictEqual(parsed.amount, 19.99);
+  assert.strictEqual(parsed.paymentAmount, 19.99);
 });
 
 test("20. findNextButton() - Next page control checking & circular link filtering", () => {
@@ -915,12 +919,12 @@ test("22. parseOrderSummary() - Parsing full and refund summaries", () => {
 
   const summary = parseOrderSummary(mockHtml);
   assert.ok(summary);
-  assert.strictEqual(summary.itemSubtotal, 115.95);
+  assert.strictEqual(summary.orderSubtotal, 115.95);
   assert.strictEqual(summary.shippingHandling, 0.0);
-  assert.strictEqual(summary.taxCollected, 10.6);
-  assert.strictEqual(summary.grandTotal, 126.83);
-  assert.strictEqual(summary.itemsRefund, 54.98);
-  assert.strictEqual(summary.taxRefund, 5.03);
+  assert.strictEqual(summary.orderTax, 10.6);
+  assert.strictEqual(summary.orderTotal, 126.83);
+  assert.strictEqual(summary.refundSubtotal, 54.98);
+  assert.strictEqual(summary.refundTax, 5.03);
   assert.strictEqual(summary.refundTotal, 60.01);
 });
 

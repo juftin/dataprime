@@ -45,18 +45,18 @@ export async function seedDemoData() {
     const shipping = hasShipping ? 5.99 : 0.0;
     const taxRate = hasTax ? 0.0825 : 0.0;
 
-    const itemSubtotal = parseFloat(
+    const orderSubtotal = parseFloat(
       ((amountPaid - shipping) / (1 + taxRate)).toFixed(2),
     );
-    const taxCollected = parseFloat((itemSubtotal * taxRate).toFixed(2));
-    const grandTotal = parseFloat(
-      (itemSubtotal + shipping + taxCollected).toFixed(2),
+    const orderTax = parseFloat((orderSubtotal * taxRate).toFixed(2));
+    const orderTotal = parseFloat(
+      (orderSubtotal + shipping + orderTax).toFixed(2),
     );
 
     // Create 1-3 itemized items
     const items = [];
     const itemCount = Math.floor(1 + Math.random() * 3);
-    let remainingAmount = itemSubtotal;
+    let remainingAmount = orderSubtotal;
 
     for (let j = 0; j < itemCount; j++) {
       const itemPrice =
@@ -105,9 +105,11 @@ export async function seedDemoData() {
         ][Math.floor(Math.random() * 4)];
       }
 
+      const asin = `B07M${Math.floor(100000 + Math.random() * 900000)}`;
       items.push({
         title: itemTitle,
-        url: `https://www.amazon.com/gp/product/B07M${Math.floor(100000 + Math.random() * 900000)}`,
+        url: `https://www.amazon.com/gp/product/${asin}`,
+        asin,
         price: itemPrice,
         quantity: 1,
         imageUrl: `https://picsum.photos/seed/${Math.floor(Math.random() * 1000)}/100/100`, // beautiful random product fallback images
@@ -118,10 +120,10 @@ export async function seedDemoData() {
     mockTransactions.push({
       id: orderId,
       date: dateISO,
-      amount: grandTotal,
+      paymentAmount: orderTotal,
       description: `Payment for Order ${orderId}`,
       orderId,
-      detailsLink: `https://www.amazon.com/gp/your-account/order-details?orderID=${orderId}`,
+      orderDetailsUrl: `https://www.amazon.com/gp/your-account/order-details?orderID=${orderId}`,
       paymentMethod: [
         "Visa (*4321)",
         "MasterCard (*9876)",
@@ -129,10 +131,10 @@ export async function seedDemoData() {
         "Amazon Gift Card",
       ][Math.floor(Math.random() * 4)],
       summary: {
-        itemSubtotal,
+        orderSubtotal,
         shippingHandling: shipping,
-        taxCollected,
-        grandTotal,
+        orderTax,
+        orderTotal,
       },
       items,
     });
@@ -145,18 +147,20 @@ export async function seedDemoData() {
     const originalOrderId = `114-${Math.floor(1000000 + Math.random() * 9000000)}-${Math.floor(1000000 + Math.random() * 9000000)}`;
     const refundAmount = -parseFloat((20 + Math.random() * 80).toFixed(2));
 
+    const baseKey = `${originalOrderId}-${dateISO}-${Math.abs(refundAmount).toFixed(2)}`;
     mockTransactions.push({
-      id: `refund-${originalOrderId}`,
+      id: `${baseKey}-0-R`,
       date: dateISO,
-      amount: refundAmount,
+      paymentAmount: refundAmount,
       description: `Refund for Order ${originalOrderId}`,
       orderId: originalOrderId,
-      detailsLink: `https://www.amazon.com/gp/your-account/order-details?orderID=${originalOrderId}`,
+      orderDetailsUrl: `https://www.amazon.com/gp/your-account/order-details?orderID=${originalOrderId}`,
       paymentMethod: "Refund to Card",
       items: [
         {
           title: "Returned Item Refund",
           url: `https://www.amazon.com/gp/product/B07M${Math.floor(100000 + Math.random() * 900000)}`,
+          asin: `B07M${Math.floor(100000 + Math.random() * 900000)}`,
           price: refundAmount,
           quantity: 1,
           imageUrl: `https://picsum.photos/seed/refund/100/100`,
@@ -176,21 +180,22 @@ export async function seedDemoData() {
     date: new Date(partialRefundDate.getTime() - 5 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split("T")[0], // 7 days ago
-    amount: 37.89,
+    paymentAmount: 37.89,
     description: `Payment for Order ${partialRefundOrderId}`,
     orderId: partialRefundOrderId,
-    detailsLink: `https://www.amazon.com/gp/your-account/order-details?orderID=${partialRefundOrderId}`,
+    orderDetailsUrl: `https://www.amazon.com/gp/your-account/order-details?orderID=${partialRefundOrderId}`,
     paymentMethod: "Visa (*4321)",
     summary: {
-      itemSubtotal: 35.0,
+      orderSubtotal: 35.0,
       shippingHandling: 0.0,
-      taxCollected: 2.89,
-      grandTotal: 37.89,
+      orderTax: 2.89,
+      orderTotal: 37.89,
     },
     items: [
       {
         title: "Premium French Press Coffee Maker (34 oz)",
         url: "https://www.amazon.com/gp/product/B07M123456",
+        asin: "B07M123456",
         price: 20.0,
         quantity: 1,
         imageUrl: "https://picsum.photos/seed/press/100/100",
@@ -199,6 +204,7 @@ export async function seedDemoData() {
       {
         title: "Double-Walled Borosilicate Espresso Glasses (Set of 2)",
         url: "https://www.amazon.com/gp/product/B07M654321",
+        asin: "B07M654321",
         price: 15.0,
         quantity: 1,
         imageUrl: "https://picsum.photos/seed/glass/100/100",
@@ -208,23 +214,26 @@ export async function seedDemoData() {
   });
 
   // Subsequent Partial Refund (Refund for the glasses)
+  const refundDateISO = partialRefundDate.toISOString().split("T")[0];
+  const partialRefundBaseKey = `${partialRefundOrderId}-${refundDateISO}-16.24`;
   mockTransactions.push({
-    id: `refund-${partialRefundOrderId}`,
-    date: partialRefundDate.toISOString().split("T")[0],
-    amount: -16.24,
+    id: `${partialRefundBaseKey}-0-R`,
+    date: refundDateISO,
+    paymentAmount: -16.24,
     description: `Refund for Order ${partialRefundOrderId}`,
     orderId: partialRefundOrderId,
-    detailsLink: `https://www.amazon.com/gp/your-account/order-details?orderID=${partialRefundOrderId}`,
+    orderDetailsUrl: `https://www.amazon.com/gp/your-account/order-details?orderID=${partialRefundOrderId}`,
     paymentMethod: "Refund to Card",
     summary: {
-      itemsRefund: 15.0,
-      taxRefund: 1.24,
+      refundSubtotal: 15.0,
+      refundTax: 1.24,
       refundTotal: 16.24,
     },
     items: [
       {
         title: "Premium French Press Coffee Maker (34 oz)",
         url: "https://www.amazon.com/gp/product/B07M123456",
+        asin: "B07M123456",
         price: 20.0,
         quantity: 1,
         imageUrl: "https://picsum.photos/seed/press/100/100",
@@ -233,6 +242,7 @@ export async function seedDemoData() {
       {
         title: "Double-Walled Borosilicate Espresso Glasses (Set of 2)",
         url: "https://www.amazon.com/gp/product/B07M654321",
+        asin: "B07M654321",
         price: 15.0,
         quantity: 1,
         imageUrl: "https://picsum.photos/seed/glass/100/100",

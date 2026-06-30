@@ -228,15 +228,15 @@ function parseTransactionElement(el, _index) {
   let orderId = orderIdMatch ? orderIdMatch[1] : null;
 
   // Extract Invoice/Details links
-  let detailsLink = "";
+  let orderDetailsUrl = "";
   const linkEl = el.querySelector(
     'a[href*="orderID="], a[href*="order-details"], a[href*="summary/edit.html"]',
   );
   if (linkEl) {
-    detailsLink = linkEl.href;
-    // Fallback: extract order ID from detailsLink href if visible card text lacked it
+    orderDetailsUrl = linkEl.href;
+    // Fallback: extract order ID from orderDetailsUrl href if visible card text lacked it
     if (!orderId) {
-      const hrefOrderIdMatch = detailsLink.match(
+      const hrefOrderIdMatch = orderDetailsUrl.match(
         /orderID=([D\d]\d{2}-\d{7}-\d{7})/i,
       );
       if (hrefOrderIdMatch) {
@@ -253,25 +253,25 @@ function parseTransactionElement(el, _index) {
       descLower.includes("grocery") ||
       descLower.includes("groceries") ||
       descLower.includes("prime now") ||
-      (detailsLink &&
-        (detailsLink.includes("/uff/") || detailsLink.includes("fresh")));
+      (orderDetailsUrl &&
+        (orderDetailsUrl.includes("/uff/") ||
+          orderDetailsUrl.includes("fresh")));
 
-    if (!detailsLink) {
+    if (!orderDetailsUrl) {
+      orderDetailsUrl = `https://www.amazon.com/gp/your-account/order-details?orderID=${orderId}`;
       if (isGrocery) {
-        detailsLink = `https://www.amazon.com/uff/your-account/order-details/ref=ppx_hzod_rd_dt_b_fresh_uff_rd?_encoding=UTF8&orderID=${orderId}&page=itemmod`;
+        orderDetailsUrl = `https://www.amazon.com/uff/your-account/order-details/ref=ppx_hzod_rd_dt_b_fresh_uff_rd?_encoding=UTF8&orderID=${orderId}&page=itemmod`;
       } else if (orderId.toUpperCase().startsWith("D")) {
-        detailsLink = `https://www.amazon.com/your-orders/order-details?orderID=${orderId}`;
-      } else {
-        detailsLink = `https://www.amazon.com/gp/your-account/order-details?orderID=${orderId}`;
+        orderDetailsUrl = `https://www.amazon.com/your-orders/order-details?orderID=${orderId}`;
       }
     } else {
       // Force rewrite to standard UFF details link if it is grocery but had a standard link
       if (
         isGrocery &&
-        (!detailsLink.includes("/uff/") ||
-          !detailsLink.includes("page=itemmod"))
+        (!orderDetailsUrl.includes("/uff/") ||
+          !orderDetailsUrl.includes("page=itemmod"))
       ) {
-        detailsLink = `https://www.amazon.com/uff/your-account/order-details/ref=ppx_hzod_rd_dt_b_fresh_uff_rd?_encoding=UTF8&orderID=${orderId}&page=itemmod`;
+        orderDetailsUrl = `https://www.amazon.com/uff/your-account/order-details/ref=ppx_hzod_rd_dt_b_fresh_uff_rd?_encoding=UTF8&orderID=${orderId}&page=itemmod`;
       }
     }
   }
@@ -310,16 +310,18 @@ function parseTransactionElement(el, _index) {
     baseKey
   ]++;
   const occurrenceIndex = previousOccurrences + pageOccurrenceIndex;
-  const id = `${baseKey}-${occurrenceIndex}`;
+  const id = isRefund
+    ? `${baseKey}-${occurrenceIndex}-R`
+    : `${baseKey}-${occurrenceIndex}`;
 
   return {
     id,
     baseKey,
     date: dateISO,
-    amount: numericAmount,
+    paymentAmount: numericAmount,
     description: description.replace(/\s+/g, " "),
     orderId,
-    detailsLink,
+    orderDetailsUrl,
     paymentMethod: parsePaymentMethod(fullText),
     elementText: fullText,
   };
