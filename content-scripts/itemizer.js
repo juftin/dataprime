@@ -83,14 +83,6 @@ async function runItemizationInContentScript() {
       const tx = queue.shift();
       if (!tx) break;
 
-      completedCount++;
-      const currentIdx = completedCount;
-      if (!scrapingState.itemizationProgress) {
-        scrapingState.itemizationProgress = {};
-      }
-      scrapingState.itemizationProgress.current = completedCount;
-      scrapingState.itemizationProgress.total = totalCount;
-
       // Check if this transaction already has item details in the cache
       if (cacheMap.has(tx.id)) {
         tx.items = cacheMap.get(tx.id);
@@ -114,6 +106,14 @@ async function runItemizationInContentScript() {
           console.warn("Failed to restore transaction summary from cache", e);
         }
 
+        completedCount++;
+        const currentIdx = completedCount;
+        if (!scrapingState.itemizationProgress) {
+          scrapingState.itemizationProgress = {};
+        }
+        scrapingState.itemizationProgress.current = completedCount;
+        scrapingState.itemizationProgress.total = totalCount;
+
         if (currentIdx % 5 === 0 || currentIdx === totalCount) {
           logToHUD(
             `Itemized ${currentIdx}/${totalCount} - Loaded from cache: ${tx.orderId}`,
@@ -136,8 +136,8 @@ async function runItemizationInContentScript() {
       }
 
       // Fetch the order details page via standard window.fetch
-      if (!tx.detailsLink) {
-        console.warn("No detailsLink for transaction", tx);
+      if (!tx.orderDetailsUrl) {
+        console.warn("No orderDetailsUrl for transaction", tx);
         continue;
       }
 
@@ -147,7 +147,7 @@ async function runItemizationInContentScript() {
         );
 
         // Perform HTTP GET request using default credentials cookie authentication
-        const response = await fetch(tx.detailsLink, {
+        const response = await fetch(tx.orderDetailsUrl, {
           method: "GET",
           credentials: "include",
         });
@@ -183,6 +183,13 @@ async function runItemizationInContentScript() {
         logToHUD(
           `[Worker ${workerId}] Successfully itemized Order ${tx.orderId} (${items.length} items parsed)`,
         );
+
+        completedCount++;
+        if (!scrapingState.itemizationProgress) {
+          scrapingState.itemizationProgress = {};
+        }
+        scrapingState.itemizationProgress.current = completedCount;
+        scrapingState.itemizationProgress.total = totalCount;
 
         // Update progress state (only if still active — another worker may have
         // detected auth failure and stopped the scrape)
@@ -239,14 +246,36 @@ async function runItemizationInContentScript() {
           {
             title: tx.description || "Amazon Purchase (Details Unreachable)",
             url:
-              tx.detailsLink ||
+              tx.orderDetailsUrl ||
               `https://www.amazon.com/gp/your-account/order-details?orderID=${tx.orderId}`,
-            price: tx.amount,
+            asin: "",
+            price: tx.paymentAmount,
             quantity: 1,
             imageUrl: "",
             seller: "Amazon.com",
           },
         ];
+
+        completedCount++;
+        if (!scrapingState.itemizationProgress) {
+          scrapingState.itemizationProgress = {};
+        }
+        scrapingState.itemizationProgress.current = completedCount;
+        scrapingState.itemizationProgress.total = totalCount;
+
+        if (scrapingState.active) {
+          chrome.runtime.sendMessage({
+            action: "SCRAPE_STATUS",
+            payload: {
+              status: "ITEMIZING",
+              message: `Analyzing details for order ${completedCount}/${totalCount}...`,
+              progress: Math.round((completedCount / totalCount) * 100),
+              currentFetchIndex: completedCount,
+              totalFetchCount: totalCount,
+              cachedCount: scrapingState.itemizationProgress.cachedCount || 0,
+            },
+          });
+        }
       }
 
       // Add a randomized human-like delay (1.2s - 2.8s) to avoid bot detection rate limits
@@ -440,6 +469,7 @@ function parseOrderDetailsHtml(html, orderId) {
           items.push({
             title,
             url: itemUrl,
+            asin: asin || "",
             price,
             quantity,
             imageUrl,
@@ -485,17 +515,15 @@ function parseOrderSummary(html) {
     return match ? parseFloat(match[0].replace(/[^\d.]/g, "")) : null;
   };
 
-  summary.itemSubtotal = extractAmountNearKeyword("Item(s) Subtotal");
+  summary.orderSubtotal = extractAmountNearKeyword("Item(s) Subtotal");
   summary.shippingHandling =
     extractAmountNearKeyword("Shipping &amp; Handling") ??
     extractAmountNearKeyword("Shipping & Handling");
-  summary.taxCollected = extractAmountNearKeyword(
-    "Estimated tax to be collected",
-  );
-  summary.grandTotal = extractAmountNearKeyword("Grand Total:");
+  summary.orderTax = extractAmountNearKeyword("Estimated tax to be collected");
+  summary.orderTotal = extractAmountNearKeyword("Grand Total:");
 
-  summary.itemsRefund = extractAmountNearKeyword("Item(s) refund");
-  summary.taxRefund = extractAmountNearKeyword("Tax refund");
+  summary.refundSubtotal = extractAmountNearKeyword("Item(s) refund");
+  summary.refundTax = extractAmountNearKeyword("Tax refund");
   summary.refundTotal = extractAmountNearKeyword("Refund Total");
 
   const hasValues = Object.values(summary).some((val) => val !== null);
@@ -666,6 +694,7 @@ function parseOrderDetailsHtmlRegexFallback(html, orderId) {
         items.push({
           title,
           url,
+          asin: asin || "",
           price,
           quantity,
           imageUrl,

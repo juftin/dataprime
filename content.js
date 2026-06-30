@@ -113,45 +113,44 @@ if (typeof chrome !== "undefined" && chrome.storage) {
     if (data && data.activeScrapeSession && data.activeScrapeSession.active) {
       // Ask background if this tab is the managed scrape tab before resuming.
       // This prevents hijacking an unrelated Amazon tab the user has open.
-      chrome.runtime.sendMessage(
-        { action: "CHECK_SCRAPE_TAB" },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            isStorageChecked = true;
-            return;
-          }
-          if (response && response.isScrapeTab) {
-            console.log("Resuming active scraping session from storage...");
-            scrapingState = data.activeScrapeSession;
+      chrome.runtime.sendMessage({ action: "CHECK_SCRAPE_TAB" }, (response) => {
+        if (chrome.runtime.lastError) {
+          isStorageChecked = true;
+          return;
+        }
+        if (response && response.isScrapeTab) {
+          console.log("Resuming active scraping session from storage...");
+          scrapingState = data.activeScrapeSession;
 
-            ensureHUD();
-            updateHUDStatus(
-              "RUNNING",
-              scrapingState.pageCount,
-              scrapingState.scrapedTransactions.length,
+          ensureHUD();
+          updateHUDStatus(
+            "RUNNING",
+            scrapingState.pageCount,
+            scrapingState.scrapedTransactions.length,
+          );
+          logToHUD("Resuming active scraping session from storage...");
+
+          if (pendingStartRequest) {
+            pendingStartRequest.sendResponse({ status: "ALREADY_RUNNING" });
+            pendingStartRequest = null;
+          }
+
+          startScrapingLoop();
+        } else {
+          // Not our managed tab — clear the stale session from storage
+          console.log(
+            "DataPrime: Not the managed scrape tab, clearing stale session.",
+          );
+          chrome.storage.local.remove("activeScrapeSession");
+          if (pendingStartRequest) {
+            handleStartScrape(
+              pendingStartRequest.request,
+              pendingStartRequest.sendResponse,
             );
-            logToHUD("Resuming active scraping session from storage...");
-
-            if (pendingStartRequest) {
-              pendingStartRequest.sendResponse({ status: "ALREADY_RUNNING" });
-              pendingStartRequest = null;
-            }
-
-            startScrapingLoop();
-          } else {
-            // Not our managed tab — clear the stale session from storage
-            console.log("DataPrime: Not the managed scrape tab, clearing stale session.");
-            chrome.storage.local.remove("activeScrapeSession");
-            if (pendingStartRequest) {
-              handleStartScrape(
-                pendingStartRequest.request,
-                pendingStartRequest.sendResponse,
-              );
-              pendingStartRequest = null;
-            }
+            pendingStartRequest = null;
           }
-        },
-      );
+        }
+      });
     } else {
       if (pendingStartRequest) {
         handleStartScrape(
@@ -314,9 +313,7 @@ async function startScrapingLoop() {
             : null;
 
           prevButton.click();
-          logToHUD(
-            `Clicked Previous Page (${backNav + 1}/${MAX_BACK_NAV})...`,
-          );
+          logToHUD(`Clicked Previous Page (${backNav + 1}/${MAX_BACK_NAV})...`);
 
           await pollForAjaxUpdate(firstTextBefore);
           await sleep(800);
@@ -424,6 +421,8 @@ async function startScrapingLoop() {
         `DataPrime: Date filter — start=${safeISO(filterStart)} (ts=${filterStartTs}), end=${safeISO(filterEnd)} (ts=${filterEndTs})`,
       );
 
+      const pageSignatureCounts = {};
+
       for (const tx of pageTransactions) {
         const txDate = new Date(tx.date);
         const txTime = txDate.getTime();
@@ -443,17 +442,43 @@ async function startScrapingLoop() {
           break;
         }
 
-        const isDuplicate = scrapingState.scrapedTransactions.some(
-          (t) => t.id === tx.id,
-        );
+        // Generate signature for duplicate checking
+        const signature = `${tx.orderId || "no-order"}|${tx.date}|${tx.paymentAmount}|${tx.description}|${tx.paymentMethod}`;
+
+        // Count how many times this signature has appeared on the current page so far
+        pageSignatureCounts[signature] =
+          (pageSignatureCounts[signature] || 0) + 1;
+        const currentOccurrenceCount = pageSignatureCounts[signature];
+
+        // Count how many times this signature already exists in scrapedTransactions
+        const scrapedOccurrenceCount = scrapingState.scrapedTransactions.filter(
+          (t) => {
+            const tSig = `${t.orderId || "no-order"}|${t.date}|${t.paymentAmount}|${t.description}|${t.paymentMethod}`;
+            return tSig === signature;
+          },
+        ).length;
+
+        // It is a duplicate if we have already scraped at least this many occurrences of this transaction
+        const isDuplicate = currentOccurrenceCount <= scrapedOccurrenceCount;
+
         if (!isDuplicate) {
+          // Adjust ID occurrence suffix to match its stable index in scrapedTransactions
+          const isRefund = tx.paymentAmount < 0;
+          tx.id = isRefund
+            ? `${tx.baseKey}-${scrapedOccurrenceCount}-R`
+            : `${tx.baseKey}-${scrapedOccurrenceCount}`;
+
           scrapingState.scrapedTransactions.push(tx);
           transactionsAddedThisPage++;
           if (transactionsAddedThisPage <= 2) {
             console.log(
-              `DataPrime: ADD tx ${tx.date} $${tx.amount} — within range`,
+              `DataPrime: ADD tx ${tx.date} $${tx.paymentAmount} — within range`,
             );
           }
+        } else {
+          console.log(
+            `DataPrime: DUP tx ${tx.date} $${tx.paymentAmount} — skipped`,
+          );
         }
       }
 

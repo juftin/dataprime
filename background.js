@@ -9,6 +9,7 @@ let activeScrape = {
   fetchItemized: true,
   currentFetchIndex: 0,
   totalFetchCount: 0,
+  cachedCount: 0,
   tabId: null,
 };
 
@@ -113,6 +114,9 @@ function handleBackgroundMessage(request, sender, sendResponse) {
       activeScrape.message = "Verifying Amazon authentication state...";
       activeScrape.progress = 0;
       activeScrape.transactions = [];
+      activeScrape.currentFetchIndex = 0;
+      activeScrape.totalFetchCount = 0;
+      activeScrape.cachedCount = 0;
 
       // Store target date bounds and itemize toggle directly on session state for ready handshake
       activeScrape.startDate = request.startDate;
@@ -215,6 +219,35 @@ function handleBackgroundMessage(request, sender, sendResponse) {
   // Handle progress updates from content script
   if (request.action === "SCRAPE_STATUS") {
     const payload = request.payload;
+
+    // Prevent itemization progress metrics from going backwards due to out-of-order concurrent worker messages.
+    // Allow the metrics to be reset when the content script restarts/re-initializes (i.e. payload.currentFetchIndex is 0).
+    if (
+      activeScrape.status === "ITEMIZING" &&
+      payload.status === "ITEMIZING" &&
+      payload.currentFetchIndex !== 0 &&
+      payload.currentFetchIndex !== undefined
+    ) {
+      if (
+        payload.progress !== undefined &&
+        payload.progress < activeScrape.progress
+      ) {
+        payload.progress = activeScrape.progress;
+      }
+      if (
+        payload.currentFetchIndex !== undefined &&
+        payload.currentFetchIndex < activeScrape.currentFetchIndex
+      ) {
+        payload.currentFetchIndex = activeScrape.currentFetchIndex;
+      }
+      if (
+        payload.cachedCount !== undefined &&
+        payload.cachedCount < activeScrape.cachedCount
+      ) {
+        payload.cachedCount = activeScrape.cachedCount;
+      }
+    }
+
     activeScrape = { ...activeScrape, ...payload };
 
     // Broadcast progress to popup or open dashboard tabs
@@ -277,6 +310,9 @@ function handleBackgroundMessage(request, sender, sendResponse) {
     activeScrape.transactions = [];
     activeScrape.startDate = null;
     activeScrape.endDate = null;
+    activeScrape.currentFetchIndex = 0;
+    activeScrape.totalFetchCount = 0;
+    activeScrape.cachedCount = 0;
 
     broadcastToAll("SCRAPE_STATE_CHANGED", activeScrape);
     sendResponse({ status: "STOPPED" });
@@ -301,6 +337,9 @@ function handleBackgroundMessage(request, sender, sendResponse) {
     activeScrape.transactions = [];
     activeScrape.startDate = null;
     activeScrape.endDate = null;
+    activeScrape.currentFetchIndex = 0;
+    activeScrape.totalFetchCount = 0;
+    activeScrape.cachedCount = 0;
     sendResponse({ status: "RESET" });
     return true;
   }
