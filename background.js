@@ -376,6 +376,8 @@ async function finalizeScraping() {
   await chrome.storage.local.set({
     transactions: mergedList,
     lastScraped: new Date().toISOString(),
+    scrapeStartDate: activeScrape.startDate,
+    scrapeEndDate: activeScrape.endDate,
   });
 
   broadcastToAll("SCRAPE_STATE_CHANGED", activeScrape);

@@ -472,12 +472,6 @@ body::after {
   height: 48px;
 }
 
-.sync-status {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-bottom: 20px;
-}
-
 .refresh-btn {
   padding: 8px 16px;
 }
@@ -498,7 +492,7 @@ body::after {
 /* KPI Cards */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -552,6 +546,10 @@ body::after {
 .bg-amber-glow {
   background: rgba(245, 158, 11, 0.08);
   border: 1px solid rgba(245, 158, 11, 0.15);
+}
+.bg-cyan-glow {
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.15);
 }
 
 .kpi-metrics {

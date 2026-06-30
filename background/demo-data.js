@@ -257,6 +257,10 @@ export async function seedDemoData() {
   await chrome.storage.local.set({
     transactions: mockTransactions,
     lastScraped: new Date().toISOString(),
+    scrapeStartDate: mockTransactions.length
+      ? mockTransactions[mockTransactions.length - 1].date
+      : null,
+    scrapeEndDate: mockTransactions.length ? mockTransactions[0].date : null,
   });
 
   return mockTransactions;

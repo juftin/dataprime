@@ -43,7 +43,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const mainContentEl = document.querySelector(".main-content");
 
   // DOM Elements - Header & Stats
-  const syncTimeText = document.getElementById("syncTime");
   const btnAnalyzeMore = document.getElementById("btnAnalyzeMore");
 
   const kpiTotalSpent = document.getElementById("kpiTotalSpent");
@@ -54,6 +53,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const kpiAvgSub = document.getElementById("kpiAvgSub");
   const kpiTopMonth = document.getElementById("kpiTopMonth");
   const kpiTopMonthSub = document.getElementById("kpiTopMonthSub");
+  const kpiLastAnalysis = document.getElementById("kpiLastAnalysis");
+  const kpiAnalysisSub = document.getElementById("kpiAnalysisSub");
 
   // DOM Elements - Chart & Registry Table
   const btnMonthlyTrend = document.getElementById("btnMonthlyTrend");
@@ -458,16 +459,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const result = await chrome.storage.local.get([
       "transactions",
       "lastScraped",
+      "scrapeStartDate",
+      "scrapeEndDate",
       "registryMode",
       "sidebarCollapsed",
     ]);
     allTransactions = result.transactions || [];
 
+    // Populate last analysis KPI card
     if (result.lastScraped) {
       const syncDate = new Date(result.lastScraped);
-      syncTimeText.innerText = `Database: Analyzed on ${syncDate.toLocaleDateString()} at ${syncDate.toLocaleTimeString()}`;
+      kpiLastAnalysis.innerText = syncDate.toLocaleDateString();
+      if (result.scrapeStartDate && result.scrapeEndDate) {
+        const start = new Date(result.scrapeStartDate).toLocaleDateString();
+        const end = new Date(result.scrapeEndDate).toLocaleDateString();
+        kpiAnalysisSub.innerText = `${start} – ${end}`;
+      } else {
+        kpiAnalysisSub.innerText = "Date range unavailable";
+      }
     } else {
-      syncTimeText.innerText = "Database: No active analysis records";
+      kpiLastAnalysis.innerText = "N/A";
+      kpiAnalysisSub.innerText = "No active analysis records";
     }
 
     // Restore persisted sidebar collapsed state (inline script may have already
