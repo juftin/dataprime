@@ -1568,3 +1568,91 @@ svg text {
   border-color: var(--primary-indigo);
   background: rgba(99, 102, 241, 0.08);
 }
+
+/* Sidebar Collapse Toggle */
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 28px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 11;
+}
+.sidebar-toggle-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--primary-indigo);
+  color: var(--primary-indigo);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.35);
+}
+
+[data-theme="light"] .sidebar-toggle-btn {
+  background: rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .sidebar-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+/* Collapsed Sidebar */
+.sidebar.collapsed,
+html.sidebar-collapsed .sidebar {
+  transform: translateX(-100%);
+}
+
+html.sidebar-collapsed .main-content {
+  margin-left: 0;
+}
+
+html.sidebar-collapsed .sidebar-expand-indicator {
+  display: flex;
+}
+
+.sidebar {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Expand indicator — floating button visible when sidebar is collapsed */
+.sidebar-expand-indicator {
+  position: fixed;
+  top: 28px;
+  left: 0;
+  z-index: 15;
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 6px 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.3);
+}
+.sidebar-expand-indicator:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--primary-indigo);
+  color: var(--primary-indigo);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.35);
+}
+
+[data-theme="light"] .sidebar-expand-indicator {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .sidebar-expand-indicator:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Main content adjusts to sidebar state */
+.main-content {
+  transition: margin-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}

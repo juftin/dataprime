@@ -31,8 +31,11 @@ function applyTheme(mode) {
  * Initializes the theme system on page load.
  */
 function initTheme() {
-  const defaultMode = prefersDarkMQ.matches ? "dark" : "light";
-  applyTheme(defaultMode);
+  // Only apply OS default if the inline script hasn't already set a theme
+  if (!document.documentElement.dataset.theme) {
+    const defaultMode = prefersDarkMQ.matches ? "dark" : "light";
+    applyTheme(defaultMode);
+  }
 
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
     chrome.storage.local.get([STORAGE_KEY], (result) => {

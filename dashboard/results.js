@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let filteredTransactions = [];
   let chartMode = "monthly"; // monthly or cumulative
   let registryMode = "grouped"; // grouped, itemized or json
+  let sidebarCollapsed = false;
   let sortField = "date"; // active sorting column field
   let sortDir = "desc"; // sort order direction (asc or desc)
 
@@ -31,12 +32,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const chkShowOrders = document.getElementById("chkShowOrders");
   const chkShowRefunds = document.getElementById("chkShowRefunds");
 
-  const btnExportCSV = document.getElementById("btnExportCSV");
-  const btnExportJSON = document.getElementById("btnExportJSON");
+  const btnExportData = document.getElementById("btnExportData");
   const btnResetFilters = document.getElementById("btnResetFilters");
   const btnSeedDemo = document.getElementById("btnSeedDemo");
   const btnClearData = document.getElementById("btnClearData");
   const btnThemeToggle = document.getElementById("btnThemeToggle");
+  const btnToggleSidebar = document.getElementById("btnToggleSidebar");
+  const btnExpandSidebar = document.getElementById("btnExpandSidebar");
+  const sidebarEl = document.querySelector(".sidebar");
+  const mainContentEl = document.querySelector(".main-content");
 
   // DOM Elements - Header & Stats
   const syncTimeText = document.getElementById("syncTime");
@@ -104,6 +108,35 @@ document.addEventListener("DOMContentLoaded", () => {
       btnThemeToggle.title = `Theme: ${mode}`;
     });
   }
+
+  // Sidebar collapse / expand
+  function collapseSidebar() {
+    sidebarCollapsed = true;
+    document.documentElement.classList.add("sidebar-collapsed");
+    sidebarEl.classList.add("collapsed");
+    mainContentEl.style.marginLeft = "0";
+    btnExpandSidebar.style.display = "flex";
+    chrome.storage.local.set({ sidebarCollapsed: true });
+  }
+
+  function expandSidebar() {
+    sidebarCollapsed = false;
+    document.documentElement.classList.remove("sidebar-collapsed");
+    sidebarEl.classList.remove("collapsed");
+    mainContentEl.style.marginLeft = "";
+    btnExpandSidebar.style.display = "none";
+    chrome.storage.local.set({ sidebarCollapsed: false });
+  }
+
+  btnToggleSidebar.addEventListener("click", () => {
+    if (sidebarCollapsed) {
+      expandSidebar();
+    } else {
+      collapseSidebar();
+    }
+  });
+
+  btnExpandSidebar.addEventListener("click", expandSidebar);
 
   // 1. Initialize Dashboard
   loadData();
@@ -185,12 +218,13 @@ document.addEventListener("DOMContentLoaded", () => {
     chkIncludeReturns.addEventListener("change", renderChart);
   }
 
-  // 3b. Registry View Toggles
+  // 3b. Registry View Toggles (persist mode across sessions)
   btnGroupedView.addEventListener("click", () => {
     btnGroupedView.classList.add("active");
     btnItemizedView.classList.remove("active");
     btnJsonView.classList.remove("active");
     registryMode = "grouped";
+    chrome.storage.local.set({ registryMode: "grouped" });
     tableViewContainer.style.display = "block";
     itemizedViewContainer.style.display = "none";
     jsonViewContainer.style.display = "none";
@@ -203,6 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnGroupedView.classList.remove("active");
     btnJsonView.classList.remove("active");
     registryMode = "itemized";
+    chrome.storage.local.set({ registryMode: "itemized" });
     tableViewContainer.style.display = "none";
     itemizedViewContainer.style.display = "block";
     jsonViewContainer.style.display = "none";
@@ -215,6 +250,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnGroupedView.classList.remove("active");
     btnItemizedView.classList.remove("active");
     registryMode = "json";
+    chrome.storage.local.set({ registryMode: "json" });
     tableViewContainer.style.display = "none";
     itemizedViewContainer.style.display = "none";
     jsonViewContainer.style.display = "block";
@@ -394,18 +430,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 5. Data Exporters Wrapper Functions
-  function exportToCSV() {
-    const mode = registryMode === "itemized" ? "line-item" : "transaction";
-    exportToCSVEngine(filteredTransactions, mode);
-  }
+  // 5. Data Exporter — adapts format to current registry view
+  btnExportData.addEventListener("click", () => {
+    if (filteredTransactions.length === 0) return;
 
-  function exportToJSON() {
-    exportToJSONEngine(filteredTransactions);
-  }
-
-  btnExportCSV.addEventListener("click", exportToCSV);
-  btnExportJSON.addEventListener("click", exportToJSON);
+    if (registryMode === "itemized") {
+      exportToCSVEngine(filteredTransactions, "line-item");
+    } else if (registryMode === "json") {
+      exportToJSONEngine(filteredTransactions);
+    } else {
+      exportToCSVEngine(filteredTransactions, "transaction");
+    }
+  });
 
   /**
    * Reads transactions from local storage and hydrates state
@@ -414,6 +450,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const result = await chrome.storage.local.get([
       "transactions",
       "lastScraped",
+      "registryMode",
+      "sidebarCollapsed",
     ]);
     allTransactions = result.transactions || [];
 
@@ -422,6 +460,33 @@ document.addEventListener("DOMContentLoaded", () => {
       syncTimeText.innerText = `Database: Analyzed on ${syncDate.toLocaleDateString()} at ${syncDate.toLocaleTimeString()}`;
     } else {
       syncTimeText.innerText = "Database: No active analysis records";
+    }
+
+    // Restore persisted sidebar collapsed state (inline script may have already
+    // applied the html class; sync JS-side state with it)
+    const storedCollapsed =
+      result.sidebarCollapsed ||
+      document.documentElement.classList.contains("sidebar-collapsed");
+    if (storedCollapsed) {
+      sidebarCollapsed = true;
+      document.documentElement.classList.add("sidebar-collapsed");
+      sidebarEl.classList.add("collapsed");
+      mainContentEl.style.marginLeft = "0";
+      btnExpandSidebar.style.display = "flex";
+    }
+
+    // Restore persisted registry view mode (set state directly, then updateView)
+    if (result.registryMode) {
+      registryMode = result.registryMode;
+      btnGroupedView.classList.toggle("active", registryMode === "grouped");
+      btnItemizedView.classList.toggle("active", registryMode === "itemized");
+      btnJsonView.classList.toggle("active", registryMode === "json");
+      tableViewContainer.style.display =
+        registryMode === "grouped" ? "block" : "none";
+      itemizedViewContainer.style.display =
+        registryMode === "itemized" ? "block" : "none";
+      jsonViewContainer.style.display =
+        registryMode === "json" ? "block" : "none";
     }
 
     updateView();
