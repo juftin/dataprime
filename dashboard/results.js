@@ -407,6 +407,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function openAnalyzeModal() {
     if (analyzeModal) {
       if (analyzeIframe) {
+        analyzeIframe.onload = () => {
+          try {
+            const body = analyzeIframe.contentDocument.body;
+            const height = body.scrollHeight;
+            if (height) analyzeIframe.style.height = height + "px";
+          } catch {
+            /* noop */
+            /* cross-origin */
+          }
+        };
         analyzeIframe.src = analyzeIframe.src;
       }
       analyzeModal.style.display = "flex";
