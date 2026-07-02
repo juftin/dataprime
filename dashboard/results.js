@@ -169,6 +169,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 2. Add Filter Event Listeners
+  [filterStartDate, filterEndDate].forEach((el) => {
+    el.addEventListener("click", () => {
+      try {
+        if (typeof el.showPicker === "function") {
+          el.showPicker();
+        }
+      } catch {
+        // ignore errors if picker is already open
+      }
+    });
+  });
+
   [
     filterStartDate,
     filterEndDate,
@@ -486,7 +498,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Populate last analysis KPI card
     if (result.lastScraped) {
-      const fmt = { month: "short", day: "numeric", year: "numeric" };
+      const fmt = { month: "2-digit", day: "2-digit", year: "numeric" };
       const syncDate = new Date(result.lastScraped);
       kpiLastAnalysis.innerText = relativeTime(syncDate);
       if (result.scrapeStartDate && result.scrapeEndDate) {
@@ -582,11 +594,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const showOrders = chkShowOrders.checked;
     const showRefunds = chkShowRefunds.checked;
 
-    filteredTransactions = allTransactions.filter((tx) => {
+    filteredTransactions = allTransactions.reduce((acc, tx) => {
       // 1. Transaction Category Toggles
       const isRefund = tx.paymentAmount < 0;
-      if (isRefund && !showRefunds) return false;
-      if (!isRefund && !showOrders) return false;
+      if (isRefund && !showRefunds) return acc;
+      if (!isRefund && !showOrders) return acc;
+
+      // 4. Date filtering
+      if (startVal || endVal) {
+        const txDate = new Date(tx.date);
+        if (startVal && txDate < startVal) return acc;
+        if (endVal && txDate > endVal) return acc;
+      }
+
+      // 5. Price range
+      if (minVal !== null || maxVal !== null) {
+        const absAmount = Math.abs(tx.paymentAmount);
+        if (minVal !== null && absAmount < minVal) return acc;
+        if (maxVal !== null && absAmount > maxVal) return acc;
+      }
+
+      let txToKeep = tx;
 
       // 3. Search box
       if (searchVal) {
@@ -597,34 +625,44 @@ document.addEventListener("DOMContentLoaded", () => {
           tx.paymentMethod.toLowerCase().includes(searchVal);
 
         let matchesItems = false;
-        if (tx.items) {
-          matchesItems = tx.items.some(
-            (item) =>
-              item.title.toLowerCase().includes(searchVal) ||
-              (item.seller && item.seller.toLowerCase().includes(searchVal)),
-          );
+
+        if (registryMode === "itemized") {
+          let matchedItemsList = [];
+          if (tx.items) {
+            matchedItemsList = tx.items.filter(
+              (item) =>
+                item.title.toLowerCase().includes(searchVal) ||
+                (item.seller &&
+                  item.seller.toLowerCase().includes(searchVal)) ||
+                matchesDesc ||
+                matchesId ||
+                matchesPm,
+            );
+          }
+          matchesItems = matchedItemsList.length > 0;
+
+          if (!matchesDesc && !matchesId && !matchesPm && !matchesItems)
+            return acc;
+
+          if (tx.items) {
+            txToKeep = { ...tx, items: matchedItemsList };
+          }
+        } else {
+          if (tx.items) {
+            matchesItems = tx.items.some(
+              (item) =>
+                item.title.toLowerCase().includes(searchVal) ||
+                (item.seller && item.seller.toLowerCase().includes(searchVal)),
+            );
+          }
+          if (!matchesDesc && !matchesId && !matchesPm && !matchesItems)
+            return acc;
         }
-
-        if (!matchesDesc && !matchesId && !matchesPm && !matchesItems)
-          return false;
       }
 
-      // 4. Date filtering
-      if (startVal || endVal) {
-        const txDate = new Date(tx.date);
-        if (startVal && txDate < startVal) return false;
-        if (endVal && txDate > endVal) return false;
-      }
-
-      // 5. Price range
-      if (minVal !== null || maxVal !== null) {
-        const absAmount = Math.abs(tx.paymentAmount);
-        if (minVal !== null && absAmount < minVal) return false;
-        if (maxVal !== null && absAmount > maxVal) return false;
-      }
-
-      return true;
-    });
+      acc.push(txToKeep);
+      return acc;
+    }, []);
 
     // Sort operations
     filteredTransactions.sort((a, b) => {

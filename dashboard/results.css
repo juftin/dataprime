@@ -175,9 +175,7 @@ body::after {
   font-size: 24px;
   font-weight: 800;
   line-height: 1.1;
-  background: linear-gradient(to right, #ffffff, #c7d2fe);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-main);
 }
 
 .brand-text p {
@@ -497,13 +495,13 @@ body::after {
   margin-bottom: 24px;
 }
 
-@media (min-width: 750px) {
+@media (min-width: 900px) {
   .kpi-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1600px) {
   .kpi-grid {
     grid-template-columns: repeat(6, 1fr);
   }
@@ -598,8 +596,6 @@ body::after {
 .kpi-metrics .sub {
   font-size: 10px;
   color: var(--text-dark);
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   min-height: 14px;
   line-height: 1.4;
@@ -607,9 +603,7 @@ body::after {
 }
 
 .text-gradient {
-  background: var(--text-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--primary-indigo);
 }
 
 /* Glass Panels */
@@ -1461,12 +1455,7 @@ html.registry-json #btnJsonView {
   background: rgba(0, 0, 0, 0.18);
 }
 
-/* Brand text gradient — dark on light */
-[data-theme="light"] .brand-text h1 {
-  background: linear-gradient(to right, #111827, #4f46e5);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
+/* Brand text gradient — removed for solid color */
 
 /* Input fields — light rgba backgrounds */
 [data-theme="light"] .search-box input {

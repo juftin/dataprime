@@ -635,9 +635,7 @@ input:checked + .slider:before {
 }
 
 .text-gradient {
-  background: var(--text-gradient-clip);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--accent);
 }
 
 /* Footer Section */
